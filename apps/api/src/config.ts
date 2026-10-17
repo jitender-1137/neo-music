@@ -1,5 +1,16 @@
 import { z } from "zod";
 
+/**
+ * A yes/no setting from the environment. `z.coerce.boolean()` would read any non-empty string —
+ * including "false" and "0" — as true, so the words are parsed explicitly; anything else is a
+ * configuration error rather than a silent guess.
+ */
+const envBool = (fallback: boolean) =>
+  z.preprocess(
+    (v) => (typeof v === "string" ? v.trim().toLowerCase() : v),
+    z.union([z.boolean(), z.enum(["true", "false", "1", "0", "yes", "no", "on", "off", ""])]).optional(),
+  ).transform((v) => (v === undefined || v === "" ? fallback : v === true || v === "true" || v === "1" || v === "yes" || v === "on"));
+
 const Env = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().int().default(4000),
@@ -13,7 +24,7 @@ const Env = z.object({
   YT_LANGUAGE: z.string().default("en"),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
   /** Trust X-Forwarded-* from the reverse proxy (nginx) in production. */
-  TRUST_PROXY: z.coerce.boolean().default(false),
+  TRUST_PROXY: envBool(false),
   SESSION_TTL_DAYS: z.coerce.number().int().positive().default(30),
   /** Max simultaneous upstream audio fetches per API instance (backpressure). */
   /** Run the outbox worker inside the API process (handy for dev / single-node deploys). */
