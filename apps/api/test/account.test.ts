@@ -40,7 +40,7 @@ describe("auth", () => {
     expect((await a.post("/api/v1/account/password", { currentPassword: "correct-horse-battery", newPassword: "another-long-password" })).statusCode).toBe(200);
     await new Promise((r) => setTimeout(r, 10));
     // b's cached session entry may survive ≤30s in-process; a fresh app instance would reject it. Verify at the DB level instead:
-    const rows = await h.ctx.pool.query("select count(*)::int as n from user_sessions where user_id = $1", [u.id]);
+    const rows = await h.query<any>("select count(*)::int as n from user_sessions where user_id = $1", [u.id]);
     expect(rows.rows[0].n).toBe(1);
   });
 });
@@ -134,16 +134,16 @@ describe("events → outbox → profile", () => {
     expect(recs.shelves[0].id).toBe("quick-picks");
   });
   it("dead-letters a poison job after max attempts", async () => {
-    await h.ctx.pool.query("insert into outbox_events (topic, payload, attempts) values ('bogus', '{}', 7)");
+    await h.query<any>("insert into outbox_events (topic, payload, attempts) values ('bogus', '{}', 7)");
     await processOutboxOnce(h.ctx.db, silent);
-    const r = await h.ctx.pool.query("select failed_at is not null as dead from outbox_events where topic='bogus'");
+    const r = await h.query<any>("select failed_at is not null as dead from outbox_events where topic='bogus'");
     expect(r.rows[0].dead).toBe(true);
   });
   it("account deletion cascades", async () => {
     const c = client(h.app); const u = await c.register();
     await c.put("/api/v1/library/likes/dev-01");
     expect((await c.del("/api/v1/account", { password: "correct-horse-battery" })).statusCode).toBe(200);
-    const r = await h.ctx.pool.query("select count(*)::int n from user_likes where user_id=$1", [u.id]);
+    const r = await h.query<any>("select count(*)::int n from user_likes where user_id=$1", [u.id]);
     expect(r.rows[0].n).toBe(0);
   });
 });

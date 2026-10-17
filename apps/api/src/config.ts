@@ -16,7 +16,18 @@ const Env = z.object({
   PORT: z.coerce.number().int().default(4000),
   HOST: z.string().default("127.0.0.1"),
   WEB_ORIGINS: z.string().default("http://localhost:3000").transform((s) => s.split(",").map((x) => x.trim()).filter(Boolean)),
-  DATABASE_URL: z.string().url(),
+  /**
+   * Which database to use:
+   *   postgres — a real PostgreSQL server at DATABASE_URL (multi-process, durable).
+   *   memory   — PostgreSQL running inside the API process (PGlite), same schema and queries, no
+   *              server needed. Data lives in RAM and is lost on restart unless MEMORY_DB_DIR is set.
+   *              Single process only: the background worker always runs inside the API.
+   */
+  DB_DRIVER: z.enum(["postgres", "memory"]).default("postgres"),
+  /** postgres only (required there). Empty is treated as unset. */
+  DATABASE_URL: z.preprocess((v) => (v === "" ? undefined : v), z.string().url().optional()),
+  /** memory only, optional: a folder to keep the in-process database in, so it survives restarts. */
+  MEMORY_DB_DIR: z.preprocess((v) => (v === "" ? undefined : v), z.string().optional()),
   REDIS_URL: z.string().url(),
   STREAM_SIGNING_SECRET: z.string().min(32, "STREAM_SIGNING_SECRET must be at least 32 chars"),
   MUSIC_PROVIDER: z.enum(["youtube", "dev"]).default("youtube"),
@@ -52,5 +63,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   if (parsed.data.NODE_ENV === "production" && /change-me/.test(parsed.data.STREAM_SIGNING_SECRET)) {
     throw new Error("STREAM_SIGNING_SECRET still has the example value");
   }
+  if (parsed.data.DB_DRIVER === "postgres" && !parsed.data.DATABASE_URL) {
+    throw new Error("Invalid configuration: DATABASE_URL is required when DB_DRIVER=postgres (or set DB_DRIVER=memory)");
+  }
+  // The in-memory database exists only inside the API process, so its worker must run there too.
+  if (parsed.data.DB_DRIVER === "memory") return { ...parsed.data, WORKER_INLINE: true };
   return parsed.data;
 }

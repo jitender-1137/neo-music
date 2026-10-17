@@ -29,3 +29,26 @@ describe("config: TRUST_PROXY", () => {
     expect(() => loadConfig({ ...base, TRUST_PROXY: "maybe" })).toThrow(/TRUST_PROXY/);
   });
 });
+
+describe("config: DB_DRIVER", () => {
+  const noDb = { REDIS_URL: base.REDIS_URL, STREAM_SIGNING_SECRET: base.STREAM_SIGNING_SECRET };
+
+  it("defaults to postgres, which needs DATABASE_URL", () => {
+    expect(loadConfig({ ...base }).DB_DRIVER).toBe("postgres");
+    expect(() => loadConfig({ ...noDb })).toThrow(/DATABASE_URL is required/);
+    expect(() => loadConfig({ ...noDb, DATABASE_URL: "" })).toThrow(/DATABASE_URL is required/);
+  });
+
+  it("memory needs no DATABASE_URL and always runs the worker inside the API", () => {
+    const c = loadConfig({ ...noDb, DB_DRIVER: "memory", WORKER_INLINE: "false" });
+    expect(c.DB_DRIVER).toBe("memory");
+    expect(c.DATABASE_URL).toBeUndefined();
+    expect(c.WORKER_INLINE).toBe(true);
+    expect(c.MEMORY_DB_DIR).toBeUndefined();
+    expect(loadConfig({ ...noDb, DB_DRIVER: "memory", MEMORY_DB_DIR: "/data/neo" }).MEMORY_DB_DIR).toBe("/data/neo");
+  });
+
+  it("rejects an unknown driver", () => {
+    expect(() => loadConfig({ ...base, DB_DRIVER: "sqlite" })).toThrow(/DB_DRIVER/);
+  });
+});

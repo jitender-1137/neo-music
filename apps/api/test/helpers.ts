@@ -3,7 +3,7 @@ import pino from "pino";
 import { sql } from "drizzle-orm";
 import { DevToneProvider } from "@zuno/provider/dev";
 import { loadConfig } from "../src/config";
-import { createDb } from "../src/db/client";
+import { openMemory, openPostgres } from "../src/db/client";
 import { runMigrations } from "../src/db/migrate";
 import { JsonCache } from "../src/lib/cache";
 import { buildServer } from "../src/server";
@@ -14,22 +14,28 @@ const DB_URL = process.env.TEST_DATABASE_URL ?? "postgres://zuno:zuno_dev_passwo
 const REDIS_URL = process.env.TEST_REDIS_URL ?? "redis://127.0.0.1:6380/15";
 
 /** Real Postgres + Redis (db 15), dev tone provider. Tables are truncated per test file. */
+const memory = process.env.TEST_DB_DRIVER === "memory";
+
 export async function makeApp() {
-  await runMigrations(DB_URL);
+  if (!memory) await runMigrations(DB_URL);
   const config = loadConfig({
-    NODE_ENV: "test", DATABASE_URL: DB_URL, REDIS_URL, STREAM_SIGNING_SECRET: "test-secret-test-secret-test-secret-123",
+    NODE_ENV: "test", DB_DRIVER: memory ? "memory" : "postgres", DATABASE_URL: memory ? "" : DB_URL, REDIS_URL, STREAM_SIGNING_SECRET: "test-secret-test-secret-test-secret-123",
     MUSIC_PROVIDER: "dev", WEB_ORIGINS: ORIGIN, LOG_LEVEL: "silent", WORKER_INLINE: "false", AUTH_RATE_LIMIT_PER_MIN: "10000",
   } as NodeJS.ProcessEnv);
-  const { db, pool } = createDb(DB_URL, 5);
+  // TEST_DB_DRIVER=memory runs the same suites against the in-process database (PGlite).
+  const database = memory ? await openMemory() : openPostgres(DB_URL, 5);
+  const db = database.db;
   const redis = new Redis(REDIS_URL, { maxRetriesPerRequest: 1 });
   await redis.flushdb();
   await db.execute(sql`truncate users, catalog_items, listening_events, outbox_events, track_cooccurrences, recommendation_configs, audit_events restart identity cascade`);
-  const ctx: AppContext = { config, provider: new DevToneProvider(), db, pool, redis, cache: new JsonCache(redis, pino({ level: "silent" })) };
+  const ctx: AppContext = { config, provider: new DevToneProvider(), db, database, redis, cache: new JsonCache(redis, pino({ level: "silent" })) };
   const app = await buildServer(ctx);
   await app.ready();
   return {
     app, ctx,
-    async close() { await app.close(); await pool.end(); redis.disconnect(); },
+    /** Raw SQL against whichever database the suite runs on. */
+    query: database.query,
+    async close() { await app.close(); await database.close(); redis.disconnect(); },
   };
 }
 

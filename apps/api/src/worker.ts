@@ -8,7 +8,12 @@ import { userSessions } from "./db/schema";
 
 const config = loadConfig();
 const log = pino({ level: config.LOG_LEVEL, name: "worker" });
-const { db, pool } = createDb(config.DATABASE_URL, 4);
+if (config.DB_DRIVER === "memory") {
+  // The in-memory database lives inside the API process; its worker runs there (WORKER_INLINE).
+  log.error("DB_DRIVER=memory: no separate worker is needed — the API runs it. Exiting.");
+  process.exit(0);
+}
+const { db, pool } = createDb(config.DATABASE_URL!, 4);
 const stop = startOutboxLoop(db, log);
 
 const housekeeping = setInterval(async () => {

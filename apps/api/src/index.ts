@@ -4,7 +4,7 @@ import { buildServer } from "./server";
 import { startOutboxLoop } from "./lib/outbox";
 
 const config = loadConfig();
-const ctx = createContext(config);
+const ctx = await createContext(config);
 const app = await buildServer(ctx);
 const stopWorker = config.WORKER_INLINE ? startOutboxLoop(ctx.db, app.log) : null;
 
@@ -17,7 +17,7 @@ async function shutdown(signal: string) {
   try {
     await app.close(); // stops accepting, waits for in-flight requests
     await stopWorker?.();
-    await ctx.pool.end();
+    await ctx.database.close();
     ctx.redis?.disconnect();
   } finally {
     clearTimeout(force);

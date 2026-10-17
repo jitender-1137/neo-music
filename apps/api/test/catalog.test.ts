@@ -9,7 +9,7 @@ describe("health", () => {
   it("liveness and readiness", async () => {
     expect((await h.app.inject({ url: "/healthz" })).json()).toEqual({ ok: true });
     const ready = (await h.app.inject({ url: "/readyz" })).json();
-    expect(ready).toMatchObject({ ok: true, checks: { postgres: true, redis: true }, provider: { id: "dev", developmentOnly: true } });
+    expect(ready).toMatchObject({ ok: true, checks: { database: true, redis: true }, database: process.env.TEST_DB_DRIVER === "memory" ? "memory" : "postgres", provider: { id: "dev", developmentOnly: true } });
   });
 });
 

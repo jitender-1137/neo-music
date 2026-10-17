@@ -1,5 +1,11 @@
 # Operations runbook
 
+## Database choice (`DB_DRIVER`)
+
+- `postgres` (default): PostgreSQL container, separate migrate step and worker. Durable; use for anything you care about.
+- `memory`: PostgreSQL inside the API process (PGlite). No database container; migrations run at API startup; the worker runs inside the API. Set `COMPOSE_PROFILES=` (empty) in `infra/.env`. Data is lost on restart unless `MEMORY_DB_DIR=/data` (kept in the `memdb` Docker volume). Single API instance only.
+- Tests: `pnpm --filter @zuno/api test` (Postgres) and `pnpm --filter @zuno/api test:memory` (same suites on the in-memory database).
+
 ## Deploy (single host)
 1. DNS → host; put TLS certs in `infra/certs/{fullchain,privkey}.pem` (e.g. certbot).
 2. `cp infra/.env.example infra/.env`; set `PUBLIC_ORIGIN`, `POSTGRES_PASSWORD`,
@@ -26,7 +32,7 @@
 Web: `API_ORIGIN` (server-side fetches).
 
 ## Health & SLOs
-- `/healthz` liveness (no deps) · `/readyz` readiness (Postgres required; Redis/provider reported).
+- `/healthz` liveness (no deps) · `/readyz` readiness (database required; Redis/provider reported).
 - Suggested SLOs: API availability 99.5 %/30 d; cached catalog p95 < 100 ms; playback start
   (tap → audio) p95 < 2.5 s; event-ingest lag < 5 min.
 - Logs: JSON (pino), `X-Request-Id` on every response, cookies/auth redacted, query strings dropped.

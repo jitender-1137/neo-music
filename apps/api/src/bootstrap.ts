@@ -4,7 +4,7 @@ import { YouTubeMusicProvider } from "@zuno/provider/youtube";
 import { DevToneProvider } from "@zuno/provider/dev";
 import type { MusicProvider } from "@zuno/provider";
 import type { Config } from "./config";
-import { createDb } from "./db/client";
+import { openDatabase } from "./db/client";
 import { JsonCache } from "./lib/cache";
 import type { AppContext } from "./context";
 
@@ -13,9 +13,10 @@ export function createProvider(config: Config, log: pino.Logger): MusicProvider 
   return new YouTubeMusicProvider({ location: config.YT_LOCATION, language: config.YT_LANGUAGE, logger: log });
 }
 
-export function createContext(config: Config): AppContext {
+export async function createContext(config: Config): Promise<AppContext> {
   const log = pino({ level: config.LOG_LEVEL });
-  const { db, pool } = createDb(config.DATABASE_URL);
+  const database = await openDatabase(config);
+  log.info({ driver: database.driver, persisted: database.driver === "memory" ? !!config.MEMORY_DB_DIR : true }, "database ready");
   const redis = new Redis(config.REDIS_URL, {
     lazyConnect: false,
     maxRetriesPerRequest: 1,
@@ -23,5 +24,5 @@ export function createContext(config: Config): AppContext {
     retryStrategy: (n) => Math.min(n * 500, 10_000),
   });
   redis.on("error", (err) => log.warn({ err: err.message }, "redis error"));
-  return { config, provider: createProvider(config, log), db, pool, redis, cache: new JsonCache(redis, log) };
+  return { config, provider: createProvider(config, log), db: database.db, database, redis, cache: new JsonCache(redis, log) };
 }
