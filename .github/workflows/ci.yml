@@ -1,0 +1,64 @@
+name: CI
+on:
+  push: { branches: [main] }
+  pull_request:
+
+concurrency: { group: ci-${{ github.ref }}, cancel-in-progress: true }
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env: { POSTGRES_USER: zuno, POSTGRES_PASSWORD: zuno_dev_password, POSTGRES_DB: zuno_test }
+        ports: ["5433:5432"]
+        options: --health-cmd "pg_isready -U zuno" --health-interval 5s --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ["6380:6379"]
+        options: --health-cmd "redis-cli ping" --health-interval 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: Typecheck
+        run: pnpm -r typecheck
+      - name: Unit + integration tests (provider, recs, player, api against real Postgres/Redis)
+        run: pnpm -r test
+      - name: Migration check (fresh DB → latest, idempotent re-run)
+        env: { DATABASE_URL: postgres://zuno:zuno_dev_password@127.0.0.1:5433/zuno_test }
+        run: pnpm --filter @zuno/api db:migrate && pnpm --filter @zuno/api db:migrate
+      - name: Schema drift check
+        run: pnpm --filter @zuno/api exec drizzle-kit check
+      - name: Build
+        run: pnpm --filter @zuno/api build && NEXT_DIST_DIR=.next pnpm --filter @zuno/web build
+      - name: Dependency audit
+        run: pnpm audit --prod --audit-level high
+      - name: E2E (Playwright, dev-tone provider — no external network)
+        run: |
+          pnpm --filter @zuno/web exec playwright install --with-deps chromium
+          CI=1 pnpm --filter @zuno/web e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with: { name: playwright-report, path: apps/web/playwright-report }
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: gitleaks/gitleaks-action@v2
+        env: { GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
+
+  images:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - run: docker build -f infra/Dockerfile.api -t zuno2-api:${{ github.sha }} .
+      - run: docker build -f infra/Dockerfile.web -t zuno2-web:${{ github.sha }} .

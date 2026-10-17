@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Neo Music Mascots</title>
+<style>
+  :root {
+    --bg: #f6f2ec; --card: #ffffff; --ink: #221e1c; --muted: #75706a; --line: rgba(34,30,28,.08); --sel: #e0743c;
+    --k: #1f1b1a; --c: #fffaf0; --b: #fba98a;
+    --hp: #f29a62; --hp2: #e8c2bd; --tile: #fde8d8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg: #141210; --card: #1f1c1a; --ink: #f3eee8; --muted: #a39d96; --line: rgba(255,255,255,.07); --sel: #f29a62; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; }
+  header { max-width: 1180px; margin: 0 auto; padding: 32px 16px 8px; }
+  h1 { margin: 0 0 4px; font-size: 26px; letter-spacing: -.02em; }
+  header p { margin: 0; color: var(--muted); }
+  .bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 18px; }
+  .bar span { color: var(--muted); font-size: 13px; margin-right: 4px; }
+  .chip { border: 0; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px 7px 8px; border-radius: 999px; background: var(--card); color: var(--ink); font: inherit; font-size: 13px; box-shadow: 0 0 0 1px var(--line); }
+  .chip i { width: 18px; height: 18px; border-radius: 50%; display: block; }
+  .chip[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--sel); }
+  main { max-width: 1180px; margin: 0 auto; padding: 16px 16px 120px; display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+  .card { background: var(--card); border-radius: 22px; padding: 18px; box-shadow: 0 0 0 1px var(--line); cursor: pointer; transition: box-shadow .15s, transform .15s; text-align: left; border: 0; color: inherit; font: inherit; }
+  .card:hover { transform: translateY(-2px); }
+  .card[aria-pressed="true"] { box-shadow: 0 0 0 2.5px var(--sel); }
+  .hero { display: flex; justify-content: center; gap: 14px; align-items: center; padding: 6px 0 14px; }
+  .hero .app { width: 132px; height: 132px; filter: drop-shadow(0 10px 18px rgba(120,60,20,.18)); }
+  .hero .sticker { width: 92px; height: 92px; }
+  .t { display: flex; align-items: baseline; gap: 8px; }
+  .n { font-weight: 700; color: var(--sel); }
+  .name { font-weight: 650; }
+  .desc { color: var(--muted); font-size: 13px; margin: 2px 0 12px; min-height: 38px; }
+  .sizes { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .strip { display: flex; align-items: center; justify-content: space-around; padding: 10px 6px; border-radius: 12px; }
+  .strip.l { background: #fff; box-shadow: inset 0 0 0 1px rgba(0,0,0,.06); }
+  .strip.d { background: #111; }
+  .strip svg:nth-child(1) { width: 48px; height: 48px; }
+  .strip svg:nth-child(2) { width: 28px; height: 28px; }
+  .strip svg:nth-child(3) { width: 16px; height: 16px; }
+  .pick { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 18px; border-radius: 999px; font-size: 14px; box-shadow: 0 8px 30px rgba(0,0,0,.25); max-width: calc(100% - 32px); text-align: center; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Neo Music mascot icons</h1>
+  <p>Twelve original characters in a cute sticker style. Each card shows the app icon, the sticker on its own, and 48 / 28 / 16 px on light and dark. Click one to pick it; try the headphone colours.</p>
+  <div class="bar" id="palettes"><span>Headphones</span></div>
+</header>
+<main id="grid"></main>
+<div class="pick" id="pick">Click a mascot to choose it</div>
+
+<script>
+// Drawing kit (512 × 512). K = outline, C = cream body, HP = headphones, B = blush.
+const K = 'stroke="var(--k)" stroke-width="14" stroke-linejoin="round" stroke-linecap="round"';
+const face = (cx, cy, s = 1) => `
+  <ellipse cx="${cx - 44 * s}" cy="${cy}" rx="${13 * s}" ry="${18 * s}" fill="var(--k)"/>
+  <ellipse cx="${cx + 44 * s}" cy="${cy}" rx="${13 * s}" ry="${18 * s}" fill="var(--k)"/>
+  <ellipse cx="${cx - 74 * s}" cy="${cy + 30 * s}" rx="${21 * s}" ry="${13 * s}" fill="var(--b)"/>
+  <ellipse cx="${cx + 74 * s}" cy="${cy + 30 * s}" rx="${21 * s}" ry="${13 * s}" fill="var(--b)"/>
+  <path d="M${cx - 15 * s} ${cy + 26 * s} q ${15 * s} ${16 * s} ${30 * s} 0" fill="none" stroke="var(--k)" stroke-width="${10 * s}" stroke-linecap="round"/>`;
+const happyFace = (cx, cy, s = 1) => `
+  <path d="M${cx - 62 * s} ${cy + 6 * s} q ${18 * s} ${-24 * s} ${36 * s} 0 M${cx + 26 * s} ${cy + 6 * s} q ${18 * s} ${-24 * s} ${36 * s} 0" fill="none" stroke="var(--k)" stroke-width="${11 * s}" stroke-linecap="round"/>
+  <ellipse cx="${cx - 76 * s}" cy="${cy + 32 * s}" rx="${21 * s}" ry="${13 * s}" fill="var(--b)"/>
+  <ellipse cx="${cx + 76 * s}" cy="${cy + 32 * s}" rx="${21 * s}" ry="${13 * s}" fill="var(--b)"/>
+  <path d="M${cx - 18 * s} ${cy + 24 * s} q ${18 * s} ${22 * s} ${36 * s} 0" fill="var(--k)" stroke="var(--k)" stroke-width="${8 * s}" stroke-linejoin="round"/>`;
+// Headphones: band (outlined) over the head, cups at both ends, pink cushion on the right cup.
+const band = (x1, y, x2, top) => `
+  <path d="M${x1} ${y} C ${x1} ${top} ${x2} ${top} ${x2} ${y}" fill="none" stroke="var(--k)" stroke-width="40" stroke-linecap="round"/>
+  <path d="M${x1} ${y} C ${x1} ${top} ${x2} ${top} ${x2} ${y}" fill="none" stroke="var(--hp)" stroke-width="18" stroke-linecap="round"/>`;
+const cups = (x1, x2, y, rx = 34, ry = 52) => `
+  <ellipse cx="${x1}" cy="${y}" rx="${rx}" ry="${ry}" fill="var(--hp)" ${K}/>
+  <ellipse cx="${x2}" cy="${y}" rx="${rx}" ry="${ry}" fill="var(--hp)" ${K}/>
+  <ellipse cx="${x2 + rx * 0.35}" cy="${y}" rx="${rx * 0.55}" ry="${ry * 0.68}" fill="var(--hp2)" ${K}/>`;
+const note = (x, y, s = 1) => `<g transform="translate(${x} ${y}) scale(${s})"><path d="M0 0 V-46 Q 18 -40 26 -24" fill="none" stroke="var(--k)" stroke-width="9" stroke-linecap="round"/><ellipse cx="-10" cy="2" rx="14" ry="11" transform="rotate(-20 -10 2)" fill="var(--k)"/></g>`;
+const sparkle = (x, y, s = 1) => `<path transform="translate(${x} ${y}) scale(${s})" d="M0 -16 Q 3 -3 16 0 Q 3 3 0 16 Q -3 3 -16 0 Q -3 -3 0 -16Z" fill="var(--hp)" stroke="var(--k)" stroke-width="5" stroke-linejoin="round"/>`;
+const ghostBody = 'M146 448 C138 300 150 118 256 100 C362 118 374 300 366 448 Q 340 476 312 450 Q 284 476 256 450 Q 228 476 200 450 Q 172 476 146 448Z';
+
+const ICONS = [
+  { name: "Neo the ghost", desc: "A friendly ghost waving hello, headphones on. The closest to your reference.",
+    art: `<path d="M152 318 Q 96 300 98 346 Q 102 384 150 372" fill="var(--c)" ${K}/>
+          <path d="${ghostBody}" fill="var(--c)" ${K}/>
+          ${band(150, 262, 362, 70)}${cups(150, 362, 270)}
+          ${face(256, 262)}
+          <path d="M296 352 Q 270 380 300 400" fill="none" stroke="var(--k)" stroke-width="12" stroke-linecap="round"/>` },
+  { name: "Dreamy ghost", desc: "Eyes closed, lost in the music, with notes floating by.",
+    art: `<path d="${ghostBody}" fill="var(--c)" ${K}/>
+          ${band(150, 262, 362, 70)}${cups(150, 362, 270)}
+          ${happyFace(256, 268)}
+          ${note(418, 150, 1.1)}${note(110, 120, .85)}${sparkle(430, 236, .9)}` },
+  { name: "Tiny ghost", desc: "A rounder, chubbier ghost that stays readable at 16 px.",
+    art: `<path d="M120 430 C110 250 160 130 256 126 C352 130 402 250 392 430 Q 359 462 324 434 Q 290 462 256 434 Q 222 462 188 434 Q 153 462 120 430Z" fill="var(--c)" ${K}/>
+          ${band(124, 290, 388, 94)}${cups(124, 388, 298, 38, 56)}
+          ${face(256, 290, 1.15)}` },
+  { name: "Kitty", desc: "A cat with pointy ears and whiskers, headphones between the ears.",
+    art: `<path d="M138 392 C112 270 136 186 160 116 L214 176 Q256 164 298 176 L352 116 C376 186 400 270 374 392 Q256 452 138 392Z" fill="var(--c)" ${K}/>
+          <path d="M170 150 L196 182 L166 194Z M342 150 L316 182 L346 194Z" fill="var(--hp2)"/>
+          ${band(140, 300, 372, 112)}${cups(140, 372, 304)}
+          ${face(256, 296)}
+          <path d="M150 330 L104 322 M152 350 L108 358 M362 330 L408 322 M360 350 L404 358" stroke="var(--k)" stroke-width="8" stroke-linecap="round"/>` },
+  { name: "Note buddy", desc: "A music note with a face: the most 'music app' of the set.",
+    art: `<path d="M298 344 V96 Q 384 110 404 196 Q 410 226 386 222 Q 360 170 330 164 V344" fill="var(--c)" ${K}/>
+          <ellipse cx="226" cy="356" rx="112" ry="88" transform="rotate(-18 226 356)" fill="var(--c)" ${K}/>
+          ${face(224, 352, .95)}${sparkle(130, 180)}${sparkle(440, 300, .8)}` },
+  { name: "Vinyl pal", desc: "A smiling record wearing headphones; the face sits on the label.",
+    art: `${band(96, 256, 416, 30)}
+          <circle cx="256" cy="268" r="168" fill="#2b2735" ${K}/>
+          <circle cx="256" cy="268" r="132" fill="none" stroke="#4b4458" stroke-width="6"/>
+          <circle cx="256" cy="268" r="108" fill="none" stroke="#4b4458" stroke-width="6"/>
+          <circle cx="256" cy="268" r="80" fill="var(--hp)" ${K}/>
+          ${face(256, 262, .62)}
+          ${cups(96, 416, 268, 32, 50)}` },
+  { name: "Cloud", desc: "A soft cloud humming along, with little notes.",
+    art: `${band(118, 300, 398, 96)}
+          <path d="M140 380 C 70 380 74 282 146 276 C 140 196 236 168 268 222 C 304 156 410 186 388 270 C 452 272 450 380 380 380 Z" fill="var(--c)" ${K}/>
+          ${cups(118, 398, 312, 32, 48)}
+          ${face(262, 318, .9)}${note(430, 140)}${note(94, 170, .8)}` },
+  { name: "Bear cub", desc: "A teddy bear with round ears and a little muzzle.",
+    art: `<circle cx="160" cy="150" r="50" fill="#f0c08f" ${K}/><circle cx="352" cy="150" r="50" fill="#f0c08f" ${K}/>
+          <circle cx="160" cy="150" r="24" fill="var(--hp2)"/><circle cx="352" cy="150" r="24" fill="var(--hp2)"/>
+          <circle cx="256" cy="282" r="160" fill="#f0c08f" ${K}/>
+          ${band(102, 282, 410, 90)}${cups(102, 410, 290)}
+          <ellipse cx="256" cy="334" rx="66" ry="50" fill="var(--c)" ${K}/>
+          <ellipse cx="256" cy="316" rx="18" ry="12" fill="var(--k)"/>
+          <path d="M240 346 q 16 14 32 0" fill="none" stroke="var(--k)" stroke-width="9" stroke-linecap="round"/>
+          <ellipse cx="200" cy="262" rx="13" ry="18" fill="var(--k)"/><ellipse cx="312" cy="262" rx="13" ry="18" fill="var(--k)"/>
+          <ellipse cx="168" cy="318" rx="20" ry="12" fill="var(--b)"/><ellipse cx="344" cy="318" rx="20" ry="12" fill="var(--b)"/>` },
+  { name: "Mochi", desc: "A squishy little blob, eyes closed and happy.",
+    art: `<path d="M106 410 C 86 262 164 164 256 164 C 348 164 426 262 406 410 Q 256 446 106 410Z" fill="var(--c)" ${K}/>
+          ${band(110, 320, 402, 108)}${cups(110, 402, 330)}
+          ${happyFace(256, 318)}${sparkle(256, 92)}` },
+  { name: "Cassette", desc: "A retro tape with a face on its label; very 'music' at a glance.",
+    art: `<rect x="86" y="140" width="340" height="250" rx="34" fill="var(--hp)" ${K}/>
+          <rect x="122" y="172" width="268" height="118" rx="16" fill="var(--c)" ${K}/>
+          ${face(256, 222, .7)}
+          <rect x="166" y="306" width="180" height="56" rx="28" fill="#2b2735" ${K}/>
+          <circle cx="206" cy="334" r="16" fill="var(--c)"/><circle cx="306" cy="334" r="16" fill="var(--c)"/>
+          <path d="M150 390 L176 430 H336 L362 390" fill="var(--hp2)" ${K}/>` },
+  { name: "Penguin", desc: "A tuxedo penguin with orange feet and beak.",
+    art: `<ellipse cx="256" cy="296" rx="146" ry="174" fill="#2b2735" ${K}/>
+          <path d="M256 170 C 330 170 352 240 344 330 C 336 420 296 446 256 446 C 216 446 176 420 168 330 C 160 240 182 170 256 170Z" fill="var(--c)" ${K}/>
+          ${band(112, 262, 400, 86)}${cups(112, 400, 270)}
+          <ellipse cx="216" cy="250" rx="12" ry="17" fill="var(--k)"/><ellipse cx="296" cy="250" rx="12" ry="17" fill="var(--k)"/>
+          <path d="M236 280 L276 280 L256 304Z" fill="var(--hp)" ${K}/>
+          <ellipse cx="190" cy="296" rx="18" ry="11" fill="var(--b)"/><ellipse cx="322" cy="296" rx="18" ry="11" fill="var(--b)"/>
+          <ellipse cx="206" cy="462" rx="34" ry="16" fill="var(--hp)" ${K}/><ellipse cx="306" cy="462" rx="34" ry="16" fill="var(--hp)" ${K}/>` },
+  { name: "Froggy", desc: "A round frog with big eyes on top and a wide grin.",
+    art: `<circle cx="180" cy="196" r="54" fill="#a8d88a" ${K}/><circle cx="332" cy="196" r="54" fill="#a8d88a" ${K}/>
+          <ellipse cx="256" cy="320" rx="178" ry="128" fill="#a8d88a" ${K}/>
+          ${band(86, 320, 426, 150)}${cups(86, 426, 326, 32, 50)}
+          <circle cx="180" cy="196" r="26" fill="var(--c)"/><circle cx="332" cy="196" r="26" fill="var(--c)"/>
+          <circle cx="184" cy="200" r="13" fill="var(--k)"/><circle cx="336" cy="200" r="13" fill="var(--k)"/>
+          <path d="M190 330 Q 256 382 322 330" fill="none" stroke="var(--k)" stroke-width="12" stroke-linecap="round"/>
+          <ellipse cx="164" cy="330" rx="22" ry="13" fill="var(--b)"/><ellipse cx="348" cy="330" rx="22" ry="13" fill="var(--b)"/>` },
+];
+
+const PALETTES = [
+  { name: "Peach (like your example)", hp: "#f29a62", hp2: "#e8c2bd", tile: "#fde8d8" },
+  { name: "Neo Aurora", hp: "#1fbf8f", hp2: "#bfe6ff", tile: "#dff5ee" },
+  { name: "Lavender", hp: "#9a7cf0", hp2: "#f3c6dc", tile: "#ece6ff" },
+  { name: "Bubblegum", hp: "#f27aa6", hp2: "#ffe0a8", tile: "#ffe3ee" },
+  { name: "Sky", hp: "#4aa8f0", hp2: "#ffd2b8", tile: "#e0f0ff" },
+];
+
+const app = (art, label) => `<svg class="app" viewBox="0 0 512 512" role="img" aria-label="${label}"><rect width="512" height="512" rx="120" fill="var(--tile)"/><g transform="translate(51 46) scale(.8)">${art}</g></svg>`;
+const sticker = (art) => `<svg class="sticker" viewBox="0 0 512 512" aria-hidden="true">${art}</svg>`;
+const small = (art) => `<svg viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" rx="120" fill="var(--tile)"/><g transform="translate(51 46) scale(.8)">${art}</g></svg>`;
+
+const grid = document.getElementById("grid"), pick = document.getElementById("pick");
+let chosen = null, palette = PALETTES[0];
+ICONS.forEach((ic, i) => {
+  const b = document.createElement("button");
+  b.className = "card"; b.setAttribute("aria-pressed", "false");
+  b.innerHTML = `<div class="hero">${app(ic.art, ic.name)}${sticker(ic.art)}</div>
+    <div class="t"><span class="n">${i + 1}</span><span class="name">${ic.name}</span></div>
+    <div class="desc">${ic.desc}</div>
+    <div class="sizes"><div class="strip l">${small(ic.art)}${small(ic.art)}${small(ic.art)}</div><div class="strip d">${small(ic.art)}${small(ic.art)}${small(ic.art)}</div></div>`;
+  b.onclick = () => { chosen = i; document.querySelectorAll(".card").forEach((c, j) => c.setAttribute("aria-pressed", String(j === i))); say(); };
+  grid.appendChild(b);
+});
+const bar = document.getElementById("palettes");
+PALETTES.forEach((p, i) => {
+  const c = document.createElement("button");
+  c.className = "chip"; c.setAttribute("aria-pressed", String(i === 0));
+  c.innerHTML = `<i style="background:linear-gradient(135deg,${p.hp} 55%,${p.hp2} 55%)"></i>${p.name}`;
+  c.onclick = () => { palette = p; const r = document.documentElement.style; r.setProperty("--hp", p.hp); r.setProperty("--hp2", p.hp2); r.setProperty("--tile", p.tile); bar.querySelectorAll(".chip").forEach((x, j) => x.setAttribute("aria-pressed", String(j === i))); say(); };
+  bar.appendChild(c);
+});
+function say() { if (chosen !== null) pick.textContent = `Your pick: mascot ${chosen + 1}, “${ICONS[chosen].name}”, with ${palette.name} headphones. Tell Claude this.`; }
+</script>
+</body>
+</html>

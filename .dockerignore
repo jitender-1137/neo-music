@@ -1,0 +1,11 @@
+**/node_modules
+**/.next
+**/.next-build
+**/dist
+**/.env
+**/.env.local
+**/*.log
+.git
+**/test-results
+**/playwright-report
+apps/web/e2e/test-accounts.local.json

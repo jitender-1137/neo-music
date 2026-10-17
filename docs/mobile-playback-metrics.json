@@ -1,0 +1,57 @@
+{
+  "measuredAt": "2026-10-17T17:45:08.413Z",
+  "environment": "Chromium (Playwright, iPhone 13 emulation, touch) · dev-tone provider · localhost",
+  "playPauseLatencyMs": {
+    "samples": [
+      10,
+      17,
+      18,
+      19,
+      20,
+      23
+    ],
+    "median": 19,
+    "max": 23
+  },
+  "startupMs": {
+    "coldFirstPlay": 70,
+    "warmResume": 115
+  },
+  "transition": {
+    "endedToNextPlayingMs": 5,
+    "prefetchStartRemainingSec": [
+      20,
+      8,
+      22
+    ],
+    "prefetchDone": [
+      "dev-02 12ms",
+      "dev-03 28ms"
+    ],
+    "rebuffersDuringTransition": 1,
+    "stalls": 0
+  },
+  "nextStartMs": {
+    "prepared": 147,
+    "notPrepared": 148
+  },
+  "networkLoss": {
+    "pausedWhileOffline": false,
+    "recoveredWithinMs": 19,
+    "messages": [],
+    "events": [
+      "waiting",
+      "playing"
+    ]
+  },
+  "signedIn": {
+    "plays": true,
+    "audioElements": 1
+  },
+  "longTasks": {
+    "count": 0,
+    "totalMs": 0,
+    "maxMs": 0,
+    "note": "dev build (unminified, React dev mode) — production is lighter"
+  }
+}

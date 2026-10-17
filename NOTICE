@@ -1,0 +1,14 @@
+Neo Music
+Copyright 2026 the Neo Music authors.
+
+This product includes software adapted from Zuno (https://github.com/noFAYZ/zuno),
+licensed under the Apache License, Version 2.0. Adapted portions (each marked in its file
+header) include: the queue semantics and playback-controller concepts (packages/player),
+YouTube Music response mappers, artwork helpers and Proof-of-Origin token flow
+(packages/provider/src/youtube), LRC parsing (packages/provider/src/lyrics) and design-token
+structure (apps/web/app/globals.css). Changes: rewritten for a browser/Node web architecture.
+
+Third-party libraries are used under their own licenses (see each package's node_modules
+LICENSE files), notably youtubei.js (MIT), bgutils-js (MIT), Next.js (MIT), Fastify (MIT),
+Drizzle ORM (Apache-2.0), TanStack Query (MIT), Radix UI (MIT), dnd-kit (MIT),
+Solar icons (CC BY 4.0), Inter (OFL-1.1).

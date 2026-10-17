@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Neo Music Icons</title>
+<style>
+  :root {
+    --bg: #f4f2fb; --card: #ffffff; --ink: #1b1830; --muted: #6b6785; --line: rgba(27,24,48,.08);
+    --sel: #6a3df0;
+    --c1: #7b4dff; --c2: #2ec5f0; --dk: #0e0b1c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg: #0d0b17; --card: #17142a; --ink: #eeeaff; --muted: #9b96b8; --line: rgba(255,255,255,.07); --sel: #a68bff; }
+  }
+  :root[data-theme="dark"] { --bg: #0d0b17; --card: #17142a; --ink: #eeeaff; --muted: #9b96b8; --line: rgba(255,255,255,.07); --sel: #a68bff; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; }
+  header { max-width: 1180px; margin: 0 auto; padding: 32px 16px 8px; }
+  h1 { margin: 0 0 4px; font-size: 26px; letter-spacing: -.02em; }
+  header p { margin: 0; color: var(--muted); }
+  .bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 18px; }
+  .bar span { color: var(--muted); font-size: 13px; margin-right: 4px; }
+  .chip { border: 0; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px 7px 8px; border-radius: 999px; background: var(--card); color: var(--ink); font: inherit; font-size: 13px; box-shadow: 0 0 0 1px var(--line); }
+  .chip i { width: 18px; height: 18px; border-radius: 50%; display: block; }
+  .chip[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--sel); }
+  main { max-width: 1180px; margin: 0 auto; padding: 16px 16px 120px; display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+  .card { background: var(--card); border-radius: 22px; padding: 18px; box-shadow: 0 0 0 1px var(--line); cursor: pointer; transition: box-shadow .15s, transform .15s; text-align: left; border: 0; color: inherit; font: inherit; }
+  .card:hover { transform: translateY(-2px); }
+  .card[aria-pressed="true"] { box-shadow: 0 0 0 2.5px var(--sel); }
+  .hero { display: grid; place-items: center; padding: 10px 0 14px; }
+  .hero svg { width: 148px; height: 148px; filter: drop-shadow(0 10px 22px rgba(70,40,160,.28)); }
+  .t { display: flex; align-items: baseline; gap: 8px; }
+  .n { font-weight: 700; color: var(--sel); font-variant-numeric: tabular-nums; }
+  .name { font-weight: 650; }
+  .desc { color: var(--muted); font-size: 13px; margin: 2px 0 12px; min-height: 38px; }
+  .sizes { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .strip { display: flex; align-items: center; justify-content: space-around; padding: 10px 6px; border-radius: 12px; }
+  .strip.l { background: #ffffff; box-shadow: inset 0 0 0 1px rgba(0,0,0,.06); }
+  .strip.d { background: #111; }
+  .strip svg:nth-child(1) { width: 48px; height: 48px; }
+  .strip svg:nth-child(2) { width: 28px; height: 28px; }
+  .strip svg:nth-child(3) { width: 16px; height: 16px; }
+  .pick { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 18px; border-radius: 999px; font-size: 14px; box-shadow: 0 8px 30px rgba(0,0,0,.25); max-width: calc(100% - 32px); text-align: center; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--c1)"/><stop offset="1" style="stop-color:var(--c2)"/></linearGradient>
+    <linearGradient id="gl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/></linearGradient>
+    <radialGradient id="vin" cx=".5" cy=".5" r=".5"><stop offset=".3" stop-color="#2a2540"/><stop offset="1" stop-color="#0c0a16"/></radialGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="14"/></filter>
+  </defs>
+</svg>
+
+<header>
+  <h1>Neo Music icon options</h1>
+  <p>Twelve concepts. Each shows the app-icon size, then 48 / 28 / 16 px on light and dark backgrounds. Click one to pick it, and try the colour sets.</p>
+  <div class="bar" id="palettes"><span>Colours</span></div>
+</header>
+<main id="grid"></main>
+<div class="pick" id="pick">Click an icon to choose it</div>
+
+<script>
+const W = 'fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round"';
+const tile = '<rect width="512" height="512" rx="120" fill="url(#bg)"/><rect width="512" height="512" rx="120" fill="url(#gl)"/>';
+const darkTile = '<rect width="512" height="512" rx="120" fill="var(--dk)"/><rect width="512" height="512" rx="120" fill="url(#gl)" opacity=".5"/>';
+
+const ICONS = [
+  { name: "Note N (current)", desc: "Two eighth notes whose stems trace an N. The icon in the app today.",
+    svg: tile + `<g transform="translate(28 6)"><path d="M214 338 V140 L328 286 V112" ${W} stroke-width="40"/><ellipse cx="172" cy="352" rx="60" ry="45" transform="rotate(-22 172 352)" fill="#fff"/><ellipse cx="288" cy="300" rx="60" ry="45" transform="rotate(-22 288 300)" fill="#fff"/></g>` },
+  { name: "Beamed notes", desc: "The classic ♫. Reads as music instantly at any size.",
+    svg: tile + `<path d="M214 352 V170 L374 136 V318" ${W} stroke-width="34"/><path d="M214 170 L374 136 V186 L214 220 Z" fill="#fff" stroke="#fff" stroke-width="20" stroke-linejoin="round"/><ellipse cx="172" cy="356" rx="56" ry="42" transform="rotate(-22 172 356)" fill="#fff"/><ellipse cx="332" cy="322" rx="56" ry="42" transform="rotate(-22 332 322)" fill="#fff"/>` },
+  { name: "Equalizer N", desc: "Five level bars stepping down and up to spell N.",
+    svg: tile + `<g fill="#fff"><rect x="112" y="116" width="52" height="280" rx="26"/><rect x="182" y="116" width="52" height="116" rx="26"/><rect x="230" y="198" width="52" height="116" rx="26"/><rect x="278" y="280" width="52" height="116" rx="26"/><rect x="348" y="116" width="52" height="280" rx="26"/></g>` },
+  { name: "Waveform", desc: "A sound wave that zig-zags through an N.",
+    svg: tile + `<path d="M104 262 H150 L194 150 L250 372 L304 140 L350 330 L380 262 H408" ${W} stroke-width="34"/>` },
+  { name: "Vinyl", desc: "A spinning record with a gradient label. Warm, album-first feel.",
+    svg: tile + `<circle cx="256" cy="256" r="178" fill="url(#vin)"/><g fill="none" stroke="#fff" stroke-opacity=".09" stroke-width="4"><circle cx="256" cy="256" r="150"/><circle cx="256" cy="256" r="128"/><circle cx="256" cy="256" r="106"/></g><path d="M150 150 A150 150 0 0 1 256 106" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="8" stroke-linecap="round"/><circle cx="256" cy="256" r="64" fill="url(#bg)"/><circle cx="256" cy="256" r="12" fill="#0c0a16"/>` },
+  { name: "Play note", desc: "A rounded play button with a note cut into it.",
+    svg: tile + `<path d="M180 136 L392 256 L180 376 Z" fill="#fff" stroke="#fff" stroke-width="44" stroke-linejoin="round"/><path d="M252 302 V212 L292 224" fill="none" stroke="var(--c1)" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="236" cy="306" rx="24" ry="18" transform="rotate(-22 236 306)" fill="var(--c1)"/>` },
+  { name: "Orbit", desc: "A note circled by a ring, for the “neo” (new) idea.",
+    svg: tile + `<ellipse cx="256" cy="262" rx="196" ry="70" transform="rotate(-24 256 262)" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="16"/><path d="M276 330 V138 Q330 150 346 214" ${W} stroke-width="34"/><ellipse cx="232" cy="334" rx="58" ry="44" transform="rotate(-22 232 334)" fill="#fff"/><circle cx="420" cy="178" r="16" fill="#fff"/>` },
+  { name: "Headphones", desc: "Headphones with a small play mark. Friendly and listening-focused.",
+    svg: tile + `<path d="M126 306 V262 A130 130 0 0 1 386 262 V306" ${W} stroke-width="34"/><rect x="104" y="282" width="74" height="124" rx="32" fill="#fff"/><rect x="334" y="282" width="74" height="124" rx="32" fill="#fff"/><path d="M234 306 L290 340 L234 374 Z" fill="#fff" stroke="#fff" stroke-width="16" stroke-linejoin="round"/>` },
+  { name: "Ribbon N", desc: "A folded geometric N monogram. Clean and brand-like.",
+    svg: tile + `<g fill="#fff"><rect x="140" y="124" width="72" height="264" rx="22"/><path d="M152 136 Q164 124 186 128 L210 132 L372 376 Q360 392 336 386 L310 380 L148 152 Z" opacity=".72"/><rect x="300" y="124" width="72" height="264" rx="22"/></g>` },
+  { name: "Neon N", desc: "A glowing gradient N on a midnight tile. Bold in dark mode.",
+    svg: darkTile + `<path d="M168 378 V134 L344 378 V134" fill="none" stroke="url(#bg)" stroke-width="54" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)" opacity=".9"/><path d="M168 378 V134 L344 378 V134" fill="none" stroke="url(#bg)" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/><path d="M168 378 V134 L344 378 V134" fill="none" stroke="#fff" stroke-opacity=".75" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>` },
+  { name: "Pulse", desc: "A centre dot with sound rings spreading out on both sides.",
+    svg: tile + `<circle cx="256" cy="256" r="44" fill="#fff"/><g ${W} stroke-width="30"><path d="M182 182 A104 104 0 0 0 182 330"/><path d="M330 182 A104 104 0 0 1 330 330"/><path d="M128 128 A180 180 0 0 0 128 384" stroke-opacity=".6"/><path d="M384 128 A180 180 0 0 1 384 384" stroke-opacity=".6"/></g>` },
+  { name: "Disc play", desc: "A white disc holding a gradient play triangle. Simple and familiar.",
+    svg: tile + `<circle cx="256" cy="256" r="160" fill="#fff"/><path d="M222 186 L340 256 L222 326 Z" fill="url(#bg)" stroke="url(#bg)" stroke-width="30" stroke-linejoin="round"/>` },
+];
+
+
+const PALETTES = [
+  { name: "Neo violet → cyan", c1: "#7b4dff", c2: "#2ec5f0", dk: "#0e0b1c" },
+  { name: "Sunset", c1: "#ff3d7f", c2: "#ff9a3d", dk: "#1a0b12" },
+  { name: "Aurora", c1: "#00b37e", c2: "#3d7bff", dk: "#071512" },
+  { name: "Ember", c1: "#e8242f", c2: "#ff6a3d", dk: "#170809" },
+  { name: "Midnight", c1: "#2b2650", c2: "#6a3df0", dk: "#08070f" },
+];
+
+const svg = (inner, label) => `<svg viewBox="0 0 512 512" role="img" aria-label="${label}">${inner}</svg>`;
+const grid = document.getElementById("grid");
+const pick = document.getElementById("pick");
+let chosen = null, palette = PALETTES[0];
+
+ICONS.forEach((ic, i) => {
+  const b = document.createElement("button");
+  b.className = "card"; b.setAttribute("aria-pressed", "false");
+  b.innerHTML = `<div class="hero">${svg(ic.svg, ic.name)}</div>
+    <div class="t"><span class="n">${i + 1}</span><span class="name">${ic.name}</span></div>
+    <div class="desc">${ic.desc}</div>
+    <div class="sizes"><div class="strip l">${svg(ic.svg, "")}${svg(ic.svg, "")}${svg(ic.svg, "")}</div><div class="strip d">${svg(ic.svg, "")}${svg(ic.svg, "")}${svg(ic.svg, "")}</div></div>`;
+  b.onclick = () => { chosen = i; document.querySelectorAll(".card").forEach((c, j) => c.setAttribute("aria-pressed", String(j === i))); say(); };
+  grid.appendChild(b);
+});
+
+const bar = document.getElementById("palettes");
+PALETTES.forEach((p, i) => {
+  const c = document.createElement("button");
+  c.className = "chip"; c.setAttribute("aria-pressed", String(i === 0));
+  c.innerHTML = `<i style="background:linear-gradient(135deg,${p.c1},${p.c2})"></i>${p.name}`;
+  c.onclick = () => { palette = p; apply(); bar.querySelectorAll(".chip").forEach((x, j) => x.setAttribute("aria-pressed", String(j === i))); say(); };
+  bar.appendChild(c);
+});
+function apply() { const r = document.documentElement.style; r.setProperty("--c1", palette.c1); r.setProperty("--c2", palette.c2); r.setProperty("--dk", palette.dk); }
+function say() { if (chosen !== null) pick.textContent = `Your pick: option ${chosen + 1}, “${ICONS[chosen].name}”, in ${palette.name}. Tell Claude this.`; }
+</script>
+</body>
+</html>

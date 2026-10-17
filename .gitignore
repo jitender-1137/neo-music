@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.next/
+.turbo/
+coverage/
+playwright-report/
+test-results/
+*.log
+.env
+.env.local
+.DS_Store
+apps/web/e2e/test-accounts.local.json
+infra/backups/
+infra/certs/
+infra/.env
+.next-*
+*.tsbuildinfo

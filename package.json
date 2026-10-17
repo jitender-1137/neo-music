@@ -1,0 +1,22 @@
+{
+  "name": "zuno2",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "packageManager": "pnpm@10.33.4",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm -r --parallel --filter @zuno/api --filter @zuno/web dev",
+    "infra:up": "docker compose -f infra/docker-compose.yml up -d",
+    "infra:down": "docker compose -f infra/docker-compose.yml down",
+    "db:migrate": "pnpm --filter @zuno/api db:migrate",
+    "build": "pnpm --filter @zuno/api build && pnpm --filter @zuno/web build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "e2e": "pnpm --filter @zuno/web e2e",
+    "verify": "pnpm typecheck && pnpm test && pnpm e2e",
+    "loadtest": "node scripts/loadtest.mjs"
+  }
+}

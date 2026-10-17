@@ -1,0 +1,1 @@
+DROP INDEX "playlist_tracks_position_uq";

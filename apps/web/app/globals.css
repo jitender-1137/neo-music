@@ -1,0 +1,445 @@
+/*
+ * Neo Music design tokens. Tailwind v4 reads @theme; light theme flips the same names, so
+ * components never branch on theme. Surfaces are separated by contrast, not borders.
+ * Brand: electric violet accent, violet→cyan gradient for the mark, cool-tinted neutrals.
+ * Token structure adapted from Zuno's global.css (Apache-2.0).
+ */
+@import "@fontsource-variable/inter";
+@import "tailwindcss";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@theme {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Cool-tinted neutrals (hue 285) — the "neo" night palette. */
+  --color-background: oklch(0.135 0.012 285);
+  --color-foreground: oklch(0.975 0.005 285);
+  --color-surface: oklch(0.185 0.016 285);
+  --color-surface-2: oklch(0.235 0.02 285);
+  --color-surface-3: oklch(0.29 0.022 285);
+  --color-muted: oklch(0.74 0.015 285);
+  --color-subtle: oklch(0.63 0.018 285);
+  --color-overlay: oklch(0.08 0.02 285 / 0.65);
+  --color-hover: oklch(0.3 0.024 285);
+  --color-press: oklch(1 0 0 / 0.12);
+  --color-divider: oklch(1 0 0 / 0.05);
+  /* Focus indication: a light neutral hairline, never the accent colour. */
+  --color-focus: oklch(1 0 0 / 0.2);
+
+  /* Brand: electric violet, with neon cyan as the gradient partner. */
+  --color-accent: oklch(0.74 0.16 288);
+  --color-accent-strong: oklch(0.66 0.2 288);
+  --color-accent-fg: oklch(0.16 0.03 288);
+  --color-brand-from: oklch(0.62 0.24 292);
+  --color-brand-to: oklch(0.8 0.14 205);
+  --color-danger: oklch(0.69 0.19 22);
+  --color-success: oklch(0.74 0.15 155);
+  --color-warning: oklch(0.82 0.14 80);
+
+  --radius-card: 0.5rem;
+  --radius-pill: 9999px;
+
+  --shadow-pop: 0 12px 40px -8px oklch(0.05 0.03 285 / 0.65);
+
+  /* Layout metrics */
+  --spacing-topbar: 4rem;
+  --spacing-player: 4.5rem;
+  --spacing-nav: 3.5rem;
+  --spacing-sidebar: 15rem;
+  --spacing-sidebar-mini: 4.5rem;
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
+
+  --animate-eq: eq 1s ease-in-out infinite;
+  @keyframes eq {
+    0%, 100% { transform: scaleY(0.3); }
+    50% { transform: scaleY(1); }
+  }
+  --animate-shimmer: shimmer 1.4s linear infinite;
+  @keyframes shimmer {
+    from { background-position: -200% 0; }
+    to { background-position: 200% 0; }
+  }
+}
+
+html[data-theme="light"] {
+  --color-background: oklch(0.985 0.004 285);
+  --color-foreground: oklch(0.2 0.02 285);
+  --color-surface: oklch(0.96 0.007 285);
+  --color-surface-2: oklch(0.925 0.01 285);
+  --color-surface-3: oklch(0.885 0.013 285);
+  --color-muted: oklch(0.44 0.02 285);
+  --color-subtle: oklch(0.5 0.02 285);
+  --color-overlay: oklch(0.2 0.03 285 / 0.4);
+  --color-hover: oklch(0.9 0.014 285);
+  --color-press: oklch(0.3 0.05 285 / 0.11);
+  --color-divider: oklch(0 0 0 / 0.06);
+  --color-focus: oklch(0 0 0 / 0.18);
+  --color-accent: oklch(0.52 0.22 288);
+  --color-accent-strong: oklch(0.46 0.23 288);
+  --color-accent-fg: oklch(0.99 0 0);
+  --color-brand-from: oklch(0.55 0.25 292);
+  --color-brand-to: oklch(0.68 0.14 210);
+  --color-danger: oklch(0.55 0.21 25);
+  --shadow-pop: 0 12px 40px -12px oklch(0.2 0.05 285 / 0.25);
+}
+
+:root {
+  color-scheme: dark;
+  /* Glass (Apple-style frosted materials) */
+  --glass-tint: oklch(0.34 0.035 285);
+  --glass-alpha: 42%;
+  --glass-alpha-strong: 92%;
+  --glass-panel-tint: oklch(0.22 0.025 285);
+  --glass-highlight: oklch(1 0 0 / 0.1);
+  --glass-edge: oklch(1 0 0 / 0.06);
+  /* App background: soft brand glow (violet top-left, cyan bottom-right) over a gentle vertical gradient. */
+  --app-gradient:
+    radial-gradient(70rem 45rem at -10% -15%, oklch(0.6 0.24 292 / 0.2), transparent 60%),
+    radial-gradient(60rem 45rem at 110% 115%, oklch(0.78 0.14 205 / 0.1), transparent 60%),
+    linear-gradient(180deg, oklch(0.16 0.022 285) 0%, oklch(0.125 0.012 285) 100%);
+  /* iOS safe areas, consumed by fixed chrome (bottom nav, mini player, full player). */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
+  /* ---------- Mobile (< 768px) chrome. Only mobile components read these; desktop never does. ---------- */
+  --m-gap: 0.375rem;               /* between floating bars */
+  --m-side: 0.625rem;              /* floating bars' inset from the screen edge */
+  --m-nav-h: 3.25rem;              /* tab bar (52px) */
+  --m-top-h: 3.25rem;              /* phone header (52px); shrinks to --m-top-h-compact when scrolled */
+  --m-top-h-compact: 2.75rem;      /* 44px */
+  --m-nav-bottom: max(var(--safe-bottom), 0.625rem); /* floats above the home indicator */
+  --m-mini-h: 3rem;                /* mini-player (48px) */
+  --m-mini-bottom: calc(var(--m-nav-bottom) + var(--m-nav-h) + var(--m-gap));
+  --m-radius-bar: 1.375rem;        /* tab bar + mini-player corners */
+  --m-radius-sheet: 1.75rem;       /* bottom sheets and the player panel */
+  --m-hit: 2.75rem;                /* 44 px minimum touch target */
+  --m-sheet-dur: 440ms;            /* iOS sheet spring (same physics as lib/spring.ts IOS_SPRING) */
+  --m-sheet-ease: cubic-bezier(0.32, 0.72, 0, 1); /* fallback where linear() isn't supported */
+}
+html[data-theme="light"] {
+  color-scheme: light;
+  --glass-tint: oklch(1 0 0);
+  --glass-alpha: 58%;
+  --glass-alpha-strong: 100%;
+  --glass-panel-tint: oklch(0.99 0.004 285);
+  --glass-highlight: oklch(1 0 0 / 0.9);
+  --glass-edge: oklch(0.3 0.04 285 / 0.09);
+  --app-gradient:
+    radial-gradient(70rem 45rem at -10% -15%, oklch(0.7 0.18 292 / 0.14), transparent 60%),
+    radial-gradient(60rem 45rem at 110% 115%, oklch(0.8 0.12 205 / 0.14), transparent 60%),
+    linear-gradient(180deg, oklch(0.99 0.006 285) 0%, oklch(0.965 0.012 280) 100%);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  background: var(--color-background);
+}
+body {
+  background: transparent;
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+  overscroll-behavior-y: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Fixed gradient layer behind everything (background-attachment: fixed is ignored on iOS). */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: var(--app-gradient);
+  background-color: var(--color-background);
+  pointer-events: none;
+}
+.app-bg { background: var(--app-gradient); background-color: var(--color-background); }
+
+/* ---------- Song accent: progress colours follow the current cover ---------- */
+@property --song-accent-dark { syntax: "<color>"; inherits: true; initial-value: oklch(0.74 0.16 288); }
+@property --song-accent-light { syntax: "<color>"; inherits: true; initial-value: oklch(0.52 0.22 288); }
+@property --m-bg-top { syntax: "<color>"; inherits: true; initial-value: #2a2440; }
+@property --m-bg-base { syntax: "<color>"; inherits: true; initial-value: #141221; }
+@property --m-bg-sheet { syntax: "<color>"; inherits: true; initial-value: #1d1a2e; }
+@property --song-glow { syntax: "<color>"; inherits: true; initial-value: rgb(124 77 255 / 0.2); }
+:root { --song-accent: var(--song-accent-dark); transition: --song-accent-dark 0.8s ease, --song-accent-light 0.8s ease, --m-bg-top 0.9s ease, --m-bg-base 0.9s ease, --m-bg-sheet 0.9s ease, --song-glow 1.2s ease; }
+html[data-theme="light"] { --song-accent: var(--song-accent-light); }
+
+/* ---------- Now Playing: artwork-driven animated backdrop ---------- */
+@property --np-c1 { syntax: "<color>"; inherits: true; initial-value: #3b2a7a; }
+@property --np-c2 { syntax: "<color>"; inherits: true; initial-value: #1d5f7a; }
+@property --np-c3 { syntax: "<color>"; inherits: true; initial-value: #2a1f4a; }
+.np-backdrop {
+  /* Colours interpolate (registered @property), so track changes cross-fade. */
+  transition: --np-c1 1.2s ease, --np-c2 1.2s ease, --np-c3 1.2s ease;
+  background-color: var(--color-background);
+  overflow: hidden;
+}
+.np-backdrop::before, .np-backdrop::after {
+  content: ""; position: absolute; inset: -30%; pointer-events: none;
+}
+.np-backdrop::before {
+  background:
+    radial-gradient(40% 45% at 22% 28%, var(--np-c1), transparent 70%),
+    radial-gradient(45% 50% at 78% 32%, var(--np-c2), transparent 70%),
+    radial-gradient(50% 55% at 52% 82%, var(--np-c3), transparent 72%);
+  filter: blur(40px) saturate(1.25);
+  animation: np-drift 26s ease-in-out infinite alternate;
+}
+/* Legibility veil: keeps text contrast regardless of how bright the cover is. */
+.np-backdrop::after {
+  background: linear-gradient(180deg, color-mix(in oklch, var(--color-background) 35%, transparent), color-mix(in oklch, var(--color-background) 70%, transparent));
+}
+.np-backdrop > * { position: relative; z-index: 1; }
+@media (prefers-reduced-motion: reduce) { .np-backdrop::before { animation: none; } }
+@keyframes np-drift {
+  0% { transform: translate3d(-4%, -2%, 0) rotate(0deg) scale(1); }
+  50% { transform: translate3d(3%, 4%, 0) rotate(12deg) scale(1.08); }
+  100% { transform: translate3d(-2%, 3%, 0) rotate(-8deg) scale(1.02); }
+}
+html[data-theme="light"] .np-backdrop::before { filter: blur(40px) saturate(1.1); opacity: 0.55; }
+html[data-theme="light"] .np-backdrop::after {
+  background: linear-gradient(180deg, color-mix(in oklch, var(--color-background) 30%, transparent), color-mix(in oklch, var(--color-background) 60%, transparent));
+}
+
+/* ---------- Glass materials ---------- */
+@utility glass {
+  background-color: color-mix(in oklch, var(--glass-tint) var(--glass-alpha), transparent);
+  -webkit-backdrop-filter: blur(16px) saturate(170%);
+  backdrop-filter: blur(16px) saturate(170%);
+  box-shadow: inset 0 1px 0 0 var(--glass-highlight), inset 0 0 0 1px var(--glass-edge);
+}
+@utility glass-strong {
+  background-color: color-mix(in oklch, var(--glass-tint) var(--glass-alpha-strong), transparent);
+}
+/* Floating panels: menus, dialogs, dropdowns, toasts. */
+@utility glass-panel {
+  background-color: color-mix(in oklch, var(--glass-panel-tint) 80%, transparent);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  backdrop-filter: blur(28px) saturate(180%);
+  box-shadow: var(--shadow-pop), inset 0 1px 0 0 var(--glass-highlight), inset 0 0 0 1px var(--glass-edge);
+}
+/* Persistent bars: player bar, mini player, tab bar. */
+@utility glass-bar {
+  background-color: color-mix(in oklch, var(--glass-panel-tint) 93%, transparent);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  backdrop-filter: blur(30px) saturate(180%);
+  box-shadow: inset 0 1px 0 0 var(--glass-edge);
+}
+
+/* Inputs ≥16px so iOS Safari never zooms on focus (no maximum-scale hacks needed). */
+input, select, textarea { font-size: max(16px, 1em); }
+
+:focus-visible {
+  outline: 1.5px solid var(--color-focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+/* Containers the app focuses itself (sheets, dialogs, the player, panels — tabindex="-1") never
+   show a ring and keep their own corners. This rule is unlayered on purpose: unlayered CSS beats
+   Tailwind's layered "outline-none", which is why a square box appeared on freshly opened sheets.
+   Real controls (buttons, links, inputs) keep the keyboard focus ring above. */
+[tabindex="-1"]:focus, [tabindex="-1"]:focus-visible { outline: none; border-radius: revert-layer; }
+/* Text fields show focus through their own soft ring/background, not an outline. */
+input:not([type="range"]):not([type="checkbox"]):not([type="radio"]):focus-visible,
+textarea:focus-visible { outline: none; }
+
+.tabular { font-variant-numeric: tabular-nums; }
+.theme-switching, .theme-switching * { transition: none !important; }
+
+/* Horizontal shelves: native momentum scroll, snap, hidden scrollbar (buttons provided). */
+.scroller {
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+.scroller::-webkit-scrollbar { display: none; }
+.scroller > * { scroll-snap-align: start; }
+
+/* Thin themed vertical scrollbars on desktop. */
+@media (pointer: fine) {
+  * { scrollbar-width: thin; scrollbar-color: var(--color-surface-3) transparent; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--color-surface) 0%, var(--color-surface-2) 50%, var(--color-surface) 100%);
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
+}
+
+.line-clamp-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* Range inputs used by seek/volume. */
+input[type="range"].zrange {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  height: 1rem;
+  cursor: pointer;
+}
+input[type="range"].zrange::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 9999px;
+  background: linear-gradient(to right, var(--color-accent) var(--fill, 0%), var(--color-surface-3) var(--fill, 0%));
+}
+input[type="range"].zrange::-moz-range-track {
+  height: 3px;
+  border-radius: 9999px;
+  background: linear-gradient(to right, var(--color-accent) var(--fill, 0%), var(--color-surface-3) var(--fill, 0%));
+}
+input[type="range"].zrange::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  margin-top: -5.5px;
+  width: 14px; height: 14px; border-radius: 9999px;
+  background: var(--color-accent);
+  transform: scale(var(--thumb, 0));
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+input[type="range"].zrange::-moz-range-thumb {
+  width: 14px; height: 14px; border: 0; border-radius: 9999px; background: var(--color-accent);
+}
+input[type="range"].zrange:hover, input[type="range"].zrange:focus-visible { --thumb: 1; }
+@media (pointer: coarse) { input[type="range"].zrange { --thumb: 1; height: 1.5rem; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------- Mobile player sheet ---------- */
+/* One persistent surface: transform-only motion (no layout), finger-driven while dragging. */
+.m-sheet { transform: translate3d(0, 100%, 0); visibility: hidden; transition: transform var(--m-sheet-dur) var(--m-sheet-ease), visibility 0s linear var(--m-sheet-dur); will-change: transform; }
+.m-sheet[data-state="open"] { transform: none; visibility: visible; transition: transform var(--m-sheet-dur) var(--m-sheet-ease), visibility 0s; }
+.m-sheet[data-dragging] { visibility: visible; }
+.m-sheet[data-dragging], .m-drag[data-dragging] { transition: none !important; }
+.m-drag { transition: transform 260ms var(--m-sheet-ease), opacity 260ms var(--m-sheet-ease); }
+/* Pressed feedback for touch (iOS has no hover). */
+@media (max-width: 767.98px) {
+  .m-press { transition: transform 120ms var(--ease-out), background-color 120ms; }
+  .m-press:active { transform: scale(0.96); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .m-sheet, .m-drag { transition-duration: 0.01ms !important; }
+  .m-press:active { transform: none; }
+}
+
+/* ---------- Phone "liquid glass" (Apple Music-style tab bar / mini-player capsule) ---------- */
+/* Genuinely see-through: low tint + strong blur/saturation, a bright top rim and a soft edge. */
+.m-glass {
+  background-color: color-mix(in oklch, var(--glass-panel-tint) 52%, transparent);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  backdrop-filter: blur(24px) saturate(190%);
+  box-shadow:
+    inset 0 1px 0 0 oklch(1 0 0 / 0.16),
+    inset 0 0 0 0.5px oklch(1 0 0 / 0.12),
+    0 14px 34px -12px oklch(0 0 0 / 0.55);
+}
+html[data-theme="light"] .m-glass {
+  background-color: oklch(1 0 0 / 0.62);
+  box-shadow:
+    inset 0 1px 0 0 oklch(1 0 0 / 0.95),
+    inset 0 0 0 0.5px oklch(0.2 0.02 285 / 0.1),
+    0 14px 34px -14px oklch(0.2 0.04 285 / 0.28);
+}
+/* The selected-tab "lens": one element that glides between tabs (no per-tab backgrounds → no jumps). */
+.m-tab-lens {
+  background: oklch(1 0 0 / 0.11);
+  box-shadow: inset 0 1px 0 0 oklch(1 0 0 / 0.14), inset 0 0 0 0.5px oklch(1 0 0 / 0.08);
+  transition: transform 420ms cubic-bezier(0.34, 1.32, 0.5, 1), opacity 200ms;
+}
+html[data-theme="light"] .m-tab-lens {
+  background: oklch(0.2 0.03 285 / 0.07);
+  box-shadow: inset 0 1px 0 0 oklch(1 0 0 / 0.9), inset 0 0 0 0.5px oklch(0.2 0.03 285 / 0.06);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .m-glass { background-color: var(--glass-panel-tint); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .m-glass { background-color: var(--glass-panel-tint); -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+
+/* Up next panel resting at half height: 46% of it below the screen (keep in sync with HALF in MobilePlayer). */
+.m-panel[data-state="open"][data-detent="half"] { transform: translate3d(0, var(--m-half-y, 55%), 0); }
+/* …and its list can still scroll to the last song while half of it is off-screen. */
+.m-panel[data-detent="half"] #m-panel-body { padding-bottom: calc(var(--m-half-pad, 50%) + 1rem); }
+
+/* ---------- Phone player look (YouTube Music / Apple Music style) ---------- */
+/* Always light-on-dark over the song's colour, whatever the app theme (like the reference apps). */
+.np-sheet {
+  color-scheme: dark;
+  --color-foreground: oklch(0.985 0 0);
+  --color-muted: oklch(1 0 0 / 0.68);
+  --color-subtle: oklch(1 0 0 / 0.5);
+  --color-surface: oklch(1 0 0 / 0.06);
+  --color-surface-2: oklch(1 0 0 / 0.1);
+  --color-surface-3: oklch(1 0 0 / 0.2);
+  --color-hover: oklch(1 0 0 / 0.08);
+  --color-press: oklch(1 0 0 / 0.13);
+  --color-divider: oklch(1 0 0 / 0.07);
+  --color-focus: oklch(1 0 0 / 0.35);
+  --color-background: var(--m-bg-base);
+  --glass-panel-tint: var(--m-bg-sheet);
+  color: var(--color-foreground);
+  background: linear-gradient(180deg, var(--m-bg-top) 0%, var(--m-bg-base) 62%);
+}
+/* Glass pills (Like · Lyrics · Related · Share). */
+.m-pill {
+  background: oklch(1 0 0 / 0.1);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);
+  box-shadow: inset 0 1px 0 0 oklch(1 0 0 / 0.12), inset 0 0 0 0.5px oklch(1 0 0 / 0.08);
+}
+.m-pill:active { background: oklch(1 0 0 / 0.18); }
+/* The enlarged cover lives BEHIND the player (never over the controls) and fades into the song colour. */
+.m-bleed { opacity: 0; transition: opacity 360ms var(--m-sheet-ease); -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 70%, transparent 100%); mask-image: linear-gradient(to bottom, #000 0%, #000 70%, transparent 100%); }
+/* Half view: the cover is cropped to the top area and fades sooner, under the overlaid title. */
+.m-bleed[data-mode="half"] { -webkit-mask-image: linear-gradient(to bottom, #000 60%, transparent 100%); mask-image: linear-gradient(to bottom, #000 60%, transparent 100%); }
+/* Title + controls glide up for the half view (transform only, measured in px by MobilePlayer). */
+.m-lift { transition: transform 420ms var(--m-sheet-ease); will-change: transform; }
+.m-bleed[data-on="true"] { opacity: 1; }
+.m-bleed::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, oklch(0 0 0 / 0.35) 0%, transparent 22%); }
+/* Phones: the app background's glow takes the playing song's colour (desktop keeps the brand glow). */
+@media (max-width: 767.98px) {
+  :root, html[data-theme="light"] {
+    --app-gradient:
+      radial-gradient(60rem 40rem at -10% -15%, var(--song-glow), transparent 60%),
+      radial-gradient(50rem 40rem at 110% 115%, var(--song-glow), transparent 60%),
+      linear-gradient(180deg, var(--color-background) 0%, var(--color-background) 100%);
+  }
+}
+
+/* ---------- No zoom (app-like, requested) ---------- */
+/* No double-tap zoom anywhere; elements that own gestures still narrow this (none / pan-y). */
+html { touch-action: manipulation; }
+/* iOS zooms into any text field under 16px when focused — keep fields at 16px on phones. */
+@media (max-width: 767.98px) {
+  input:not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]), textarea, select { font-size: 16px !important; }
+}
+
+/* Swipe surfaces: images never start a native drag or the iOS long-press preview (both cancel swipes). */
+.np-sheet img, [data-app-chrome] img, .m-sheet img { -webkit-user-drag: none; user-drag: none; -webkit-touch-callout: none; }
+
+/* Tap-driven transitions use the same spring as gesture releases (stiffness 280, damping 31, mass 1),
+   sampled into a CSS linear() curve, so a tapped open and a flicked open move identically. */
+@supports (transition-timing-function: linear(0, 1)) {
+  :root {
+    --m-sheet-ease: linear(0, 0.0189, 0.0666, 0.1322, 0.2077, 0.2872, 0.3667, 0.4434, 0.5154, 0.5816, 0.6416, 0.6952, 0.7425, 0.7839, 0.8198, 0.8506, 0.8769, 0.8992, 0.918, 0.9337, 0.9467, 0.9575, 0.9664, 0.9736, 0.9795, 0.9842, 0.988, 0.991, 0.9933, 0.9952, 0.9966, 0.9977, 1);
+  }
+}

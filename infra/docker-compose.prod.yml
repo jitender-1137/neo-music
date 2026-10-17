@@ -1,0 +1,58 @@
+# Single-host production stack. Secrets come from infra/.env (never committed).
+name: zuno2-prod
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-zuno}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-zuno}
+    volumes: [pgdata:/var/lib/postgresql/data, ./backups:/backups]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-zuno}"], interval: 10s, retries: 10 }
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "512mb", "--maxmemory-policy", "allkeys-lru"]
+    healthcheck: { test: ["CMD", "redis-cli", "ping"], interval: 10s, retries: 10 }
+  migrate:
+    build: { context: .., dockerfile: infra/Dockerfile.api }
+    command: ["node", "dist/db/migrate.js"]
+    environment: &apienv
+      NODE_ENV: production
+      DATABASE_URL: postgres://${POSTGRES_USER:-zuno}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-zuno}
+      REDIS_URL: redis://redis:6379
+      STREAM_SIGNING_SECRET: ${STREAM_SIGNING_SECRET:?set STREAM_SIGNING_SECRET}
+      WEB_ORIGINS: ${PUBLIC_ORIGIN:?set PUBLIC_ORIGIN}
+      MUSIC_PROVIDER: ${MUSIC_PROVIDER:-youtube}
+      YT_LOCATION: ${YT_LOCATION:-US}
+      YT_LANGUAGE: ${YT_LANGUAGE:-en}
+      TRUST_PROXY: "true"
+      HOST: 0.0.0.0
+      WORKER_INLINE: "false"
+    depends_on: { postgres: { condition: service_healthy } }
+    restart: "no"
+  api:
+    build: { context: .., dockerfile: infra/Dockerfile.api }
+    restart: unless-stopped
+    environment: *apienv
+    depends_on: { migrate: { condition: service_completed_successfully }, redis: { condition: service_healthy } }
+  worker:
+    build: { context: .., dockerfile: infra/Dockerfile.api }
+    command: ["node", "dist/worker.js"]
+    restart: unless-stopped
+    environment: *apienv
+    depends_on: { migrate: { condition: service_completed_successfully } }
+  web:
+    build: { context: .., dockerfile: infra/Dockerfile.web }
+    restart: unless-stopped
+    environment: { API_ORIGIN: "http://api:4000" }
+    depends_on: [api]
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    volumes: [./nginx.conf:/etc/nginx/conf.d/default.conf:ro, ./certs:/etc/nginx/certs:ro]
+    depends_on: [web, api]
+volumes:
+  pgdata:
