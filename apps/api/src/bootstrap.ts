@@ -17,12 +17,14 @@ export async function createContext(config: Config): Promise<AppContext> {
   const log = pino({ level: config.LOG_LEVEL });
   const database = await openDatabase(config);
   log.info({ driver: database.driver, persisted: database.driver === "memory" ? !!config.MEMORY_DB_DIR : true }, "database ready");
-  const redis = new Redis(config.REDIS_URL, {
+  // Redis is optional: without REDIS_URL the cache and rate limits live in this process's memory.
+  const redis = config.REDIS_URL ? new Redis(config.REDIS_URL, {
     lazyConnect: false,
     maxRetriesPerRequest: 1,
     enableOfflineQueue: false,
     retryStrategy: (n) => Math.min(n * 500, 10_000),
-  });
-  redis.on("error", (err) => log.warn({ err: err.message }, "redis error"));
+  }) : null;
+  redis?.on("error", (err) => log.warn({ err: err.message }, "redis error"));
+  if (!redis) log.info("no REDIS_URL: caching and rate limits use process memory");
   return { config, provider: createProvider(config, log), db: database.db, database, redis, cache: new JsonCache(redis, log) };
 }

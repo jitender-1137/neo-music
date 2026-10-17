@@ -28,7 +28,11 @@ const Env = z.object({
   DATABASE_URL: z.preprocess((v) => (v === "" ? undefined : v), z.string().url().optional()),
   /** memory only, optional: a folder to keep the in-process database in, so it survives restarts. */
   MEMORY_DB_DIR: z.preprocess((v) => (v === "" ? undefined : v), z.string().optional()),
-  REDIS_URL: z.string().url(),
+  /**
+   * Optional cache (stream lookups, catalog, shared rate limits). Without it everything still works:
+   * caching and rate limiting fall back to this process's memory. Empty is treated as unset.
+   */
+  REDIS_URL: z.preprocess((v) => (v === "" ? undefined : v), z.string().url().optional()),
   STREAM_SIGNING_SECRET: z.string().min(32, "STREAM_SIGNING_SECRET must be at least 32 chars"),
   MUSIC_PROVIDER: z.enum(["youtube", "dev"]).default("youtube"),
   YT_LOCATION: z.string().length(2).default("US"),

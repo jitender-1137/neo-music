@@ -1,0 +1,32 @@
+# Neo Music single container: HTTPS for {$DOMAIN} (automatic certificates), /api → API, rest → website.
+{
+	{$CADDY_GLOBAL_OPTIONS}
+	admin off
+}
+
+{$SITE_ADDRESS} {
+	header Strict-Transport-Security "max-age=63072000"
+	request_body {
+		max_size 512KB
+	}
+
+	# Audio: stream straight through (no buffering), Range headers pass unchanged.
+	handle /api/v1/stream/* {
+		reverse_proxy 127.0.0.1:4000 {
+			flush_interval -1
+		}
+	}
+	handle /api/* {
+		reverse_proxy 127.0.0.1:4000
+	}
+	handle /healthz {
+		reverse_proxy 127.0.0.1:4000
+	}
+	handle /readyz {
+		reverse_proxy 127.0.0.1:4000
+	}
+	handle {
+		encode zstd gzip
+		reverse_proxy 127.0.0.1:3000
+	}
+}

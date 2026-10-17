@@ -52,3 +52,12 @@ describe("config: DB_DRIVER", () => {
     expect(() => loadConfig({ ...base, DB_DRIVER: "sqlite" })).toThrow(/DB_DRIVER/);
   });
 });
+
+describe("config: REDIS_URL", () => {
+  it("is optional (empty means none)", () => {
+    const { REDIS_URL: _r, ...noRedis } = base;
+    expect(loadConfig({ ...noRedis }).REDIS_URL).toBeUndefined();
+    expect(loadConfig({ ...noRedis, REDIS_URL: "" }).REDIS_URL).toBeUndefined();
+    expect(loadConfig({ ...base }).REDIS_URL).toBe(base.REDIS_URL);
+  });
+});

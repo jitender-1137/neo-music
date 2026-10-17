@@ -16,8 +16,13 @@ export interface CacheOptions {
 
 type Envelope<T> = { v: T; at: number };
 
+/** Entries kept in process memory when there is no Redis at all (single-container mode). */
+const LOCAL_MAX_ENTRIES = 2000;
+
 export class JsonCache {
   private inflight = new Map<string, Promise<unknown>>();
+  /** Used only when no Redis is configured: a bounded LRU in this process (oldest dropped first). */
+  private local = new Map<string, { env: Envelope<unknown>; expires: number }>();
   constructor(private readonly redis: Redis | null, private readonly log: FastifyBaseLogger, private readonly prefix = "zc:v1:") {}
 
   async get<T>(key: string, opts: CacheOptions, loader: () => Promise<T>): Promise<T> {
@@ -33,7 +38,7 @@ export class JsonCache {
   }
 
   async del(key: string): Promise<void> {
-    if (!this.redis) return;
+    if (!this.redis) { this.local.delete(this.prefix + key); return; }
     await this.redis.del(this.prefix + key).catch(() => undefined);
   }
 
@@ -50,7 +55,14 @@ export class JsonCache {
   }
 
   private async read<T>(k: string): Promise<Envelope<T> | null> {
-    if (!this.redis || this.redis.status !== "ready") return null;
+    if (!this.redis) {
+      const e = this.local.get(k);
+      if (!e) return null;
+      if (e.expires <= Date.now()) { this.local.delete(k); return null; }
+      this.local.delete(k); this.local.set(k, e); // most recently used goes last
+      return e.env as Envelope<T>;
+    }
+    if (this.redis.status !== "ready") return null;
     try {
       const raw = await this.redis.get(k);
       return raw ? (JSON.parse(raw) as Envelope<T>) : null;
@@ -61,7 +73,13 @@ export class JsonCache {
   }
 
   private async write<T>(k: string, v: T, ttlSec: number): Promise<void> {
-    if (!this.redis || this.redis.status !== "ready") return;
+    if (!this.redis) {
+      this.local.delete(k);
+      this.local.set(k, { env: { v, at: Date.now() }, expires: Date.now() + Math.max(1, ttlSec) * 1000 });
+      while (this.local.size > LOCAL_MAX_ENTRIES) this.local.delete(this.local.keys().next().value!);
+      return;
+    }
+    if (this.redis.status !== "ready") return;
     try {
       await this.redis.set(k, JSON.stringify({ v, at: Date.now() } satisfies Envelope<T>), "EX", Math.max(1, Math.ceil(ttlSec)));
     } catch (err) {

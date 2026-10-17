@@ -1,6 +1,7 @@
 # Builds the Neo Music server images and publishes them to GitHub Container Registry:
-#   ghcr.io/jitender-1137/neo-music-api   (API + worker + migrations)
-#   ghcr.io/jitender-1137/neo-music-web   (Next.js website)
+#   ghcr.io/jitender-1137/neo-music       (ALL-IN-ONE: website + API + Caddy HTTPS, in-memory DB)
+#   ghcr.io/jitender-1137/neo-music-api   (API + worker + migrations, for the multi-container setup)
+#   ghcr.io/jitender-1137/neo-music-web   (Next.js website, for the multi-container setup)
 # Both for linux/arm64 (Oracle Ampere) and linux/amd64. Tags: latest (main) and sha-<commit>.
 # Publishing uses the workflow's own GITHUB_TOKEN — no personal credentials. Images carry no
 # secrets or domain: everything server-specific comes from infra/.env at run time.
@@ -8,7 +9,7 @@ name: Docker images
 on:
   push:
     branches: [main]
-    paths: ["apps/api/**", "apps/web/**", "packages/**", "infra/Dockerfile.*", "pnpm-lock.yaml", ".github/workflows/docker.yml"]
+    paths: ["apps/api/**", "apps/web/**", "packages/**", "infra/Dockerfile.*", "infra/allinone/**", "pnpm-lock.yaml", ".github/workflows/docker.yml"]
   workflow_dispatch:
 
 concurrency:
@@ -27,8 +28,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { name: api, dockerfile: infra/Dockerfile.api }
-          - { name: web, dockerfile: infra/Dockerfile.web }
+          - { name: allinone, image: neo-music, dockerfile: infra/Dockerfile.allinone }
+          - { name: api, image: neo-music-api, dockerfile: infra/Dockerfile.api }
+          - { name: web, image: neo-music-web, dockerfile: infra/Dockerfile.web }
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-qemu-action@v3
@@ -41,12 +43,12 @@ jobs:
       - id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository_owner }}/neo-music-${{ matrix.name }}
+          images: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha,prefix=sha-,format=short
           labels: |
-            org.opencontainers.image.title=neo-music-${{ matrix.name }}
+            org.opencontainers.image.title=${{ matrix.image }}
       - uses: docker/build-push-action@v6
         with:
           context: .
