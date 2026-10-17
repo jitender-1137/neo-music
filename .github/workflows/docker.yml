@@ -1,0 +1,59 @@
+# Builds the Neo Music server images and publishes them to GitHub Container Registry:
+#   ghcr.io/jitender-1137/neo-music-api   (API + worker + migrations)
+#   ghcr.io/jitender-1137/neo-music-web   (Next.js website)
+# Both for linux/arm64 (Oracle Ampere) and linux/amd64. Tags: latest (main) and sha-<commit>.
+# Publishing uses the workflow's own GITHUB_TOKEN — no personal credentials. Images carry no
+# secrets or domain: everything server-specific comes from infra/.env at run time.
+name: Docker images
+on:
+  push:
+    branches: [main]
+    paths: ["apps/api/**", "apps/web/**", "packages/**", "infra/Dockerfile.*", "pnpm-lock.yaml", ".github/workflows/docker.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: "docker-${{ github.ref }}"
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: api, dockerfile: infra/Dockerfile.api }
+          - { name: web, dockerfile: infra/Dockerfile.web }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/neo-music-${{ matrix.name }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,prefix=sha-,format=short
+          labels: |
+            org.opencontainers.image.title=neo-music-${{ matrix.name }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}

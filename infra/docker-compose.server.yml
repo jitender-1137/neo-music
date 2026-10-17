@@ -1,0 +1,80 @@
+# Single-host production stack using the PREBUILT images from GitHub Container Registry (no build on
+# the server). Same services and settings as docker-compose.prod.yml; secrets come from infra/.env.
+#   docker compose -f infra/docker-compose.server.yml --env-file infra/.env pull
+#   docker compose -f infra/docker-compose.server.yml --env-file infra/.env up -d
+# NEO_IMAGE_TAG picks the version (default latest; or sha-<commit> to pin / roll back).
+#
+# Database choice (infra/.env):
+#   DB_DRIVER=postgres + COMPOSE_PROFILES=postgres → a Postgres container, a migrate step and a
+#                                                    separate worker (durable data).
+#   DB_DRIVER=memory   + COMPOSE_PROFILES=          → no Postgres at all: the API keeps the database in
+#                                                    its own memory (PGlite) and runs the worker itself.
+#                                                    Set MEMORY_DB_DIR=/data to keep it across restarts.
+name: zuno2-prod
+services:
+  postgres:
+    profiles: [postgres]
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-zuno}
+      # The image refuses to start without a password, so an empty one fails loudly.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+      POSTGRES_DB: ${POSTGRES_DB:-zuno}
+    volumes: [pgdata:/var/lib/postgresql/data, ./backups:/backups]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-zuno}"], interval: 10s, retries: 10 }
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "512mb", "--maxmemory-policy", "allkeys-lru"]
+    healthcheck: { test: ["CMD", "redis-cli", "ping"], interval: 10s, retries: 10 }
+  migrate:
+    profiles: [postgres]
+    image: ghcr.io/jitender-1137/neo-music-api:${NEO_IMAGE_TAG:-latest}
+    command: ["node", "dist/db/migrate.js"]
+    environment: &apienv
+      NODE_ENV: production
+      DB_DRIVER: ${DB_DRIVER:-postgres}
+      DATABASE_URL: postgres://${POSTGRES_USER:-zuno}:${POSTGRES_PASSWORD:-}@postgres:5432/${POSTGRES_DB:-zuno}
+      MEMORY_DB_DIR: ${MEMORY_DB_DIR:-}
+      REDIS_URL: redis://redis:6379
+      STREAM_SIGNING_SECRET: ${STREAM_SIGNING_SECRET:?set STREAM_SIGNING_SECRET}
+      WEB_ORIGINS: ${PUBLIC_ORIGIN:?set PUBLIC_ORIGIN}
+      MUSIC_PROVIDER: ${MUSIC_PROVIDER:-youtube}
+      YT_LOCATION: ${YT_LOCATION:-US}
+      YT_LANGUAGE: ${YT_LANGUAGE:-en}
+      TRUST_PROXY: "true"
+      HOST: 0.0.0.0
+      WORKER_INLINE: "false"
+    depends_on: { postgres: { condition: service_healthy } }
+    restart: "no"
+  api:
+    image: ghcr.io/jitender-1137/neo-music-api:${NEO_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment: *apienv
+    # In-memory database files (only used when MEMORY_DB_DIR=/data).
+    volumes: [memdb:/data]
+    depends_on:
+      migrate: { condition: service_completed_successfully, required: false }
+      redis: { condition: service_healthy }
+  worker:
+    profiles: [postgres]
+    image: ghcr.io/jitender-1137/neo-music-api:${NEO_IMAGE_TAG:-latest}
+    command: ["node", "dist/worker.js"]
+    restart: unless-stopped
+    environment: *apienv
+    depends_on: { migrate: { condition: service_completed_successfully } }
+  web:
+    image: ghcr.io/jitender-1137/neo-music-web:${NEO_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment: { API_ORIGIN: "http://api:4000" }
+    depends_on: [api]
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    volumes: [./nginx.conf:/etc/nginx/conf.d/default.conf:ro, ./certs:/etc/nginx/certs:ro]
+    depends_on: [web, api]
+volumes:
+  pgdata:
+  memdb:
