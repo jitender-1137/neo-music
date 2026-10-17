@@ -2,8 +2,12 @@
 # Neo Music in ONE container: website (Next.js) + API (Fastify, in-memory database, no Redis)
 # + Caddy in front, which gets and renews the HTTPS certificate for $DOMAIN automatically.
 #
+#   HTTPS (Caddy gets the certificate):
 #   docker run -d -p 80:80 -p 443:443 -e DOMAIN=music.example.com \
 #     -e STREAM_SIGNING_SECRET=$(openssl rand -base64 32) -v neo-data:/data ghcr.io/<owner>/neo-music
+#   Behind your own nginx (plain HTTP on container port 8080):
+#   docker run -d -p 127.0.0.1:3003:8080 -e PUBLIC_ORIGIN=https://music.example.com \
+#     -e STREAM_SIGNING_SECRET=... -v neo-data:/data ghcr.io/<owner>/neo-music
 #
 # /data keeps the database (/data/db) and Caddy's certificates (/data/caddy) across restarts.
 FROM caddy:2.10-alpine AS caddy
@@ -53,7 +57,7 @@ COPY infra/allinone/Caddyfile /app/Caddyfile
 COPY infra/allinone/start.sh /app/start.sh
 USER zuno
 VOLUME ["/data"]
-EXPOSE 80 443
+EXPOSE 80 443 8080
 HEALTHCHECK --interval=15s --timeout=3s --start-period=30s --retries=5 CMD node -e "fetch('http://127.0.0.1:4000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["/bin/bash", "/app/start.sh"]

@@ -3,17 +3,34 @@
 # so Docker's restart policy brings the whole app back cleanly.
 set -euo pipefail
 
-: "${DOMAIN:?Set DOMAIN to the domain of your site, e.g. -e DOMAIN=music.example.com (or DOMAIN=localhost to try it)}"
+# Two ways to run:
+#   HTTPS mode — set DOMAIN: Caddy serves ports 80/443 and gets the certificate itself.
+#   HTTP mode  — no DOMAIN, set PUBLIC_ORIGIN (the https:// address people open): plain HTTP on
+#                port 8080 inside the container, for running behind your own nginx / proxy.
 : "${STREAM_SIGNING_SECRET:?Set STREAM_SIGNING_SECRET (32+ random characters): openssl rand -base64 32}"
 
 mkdir -p /data/db /data/caddy /data/config
 
-# Site address for Caddy. A real domain gets a free Let's Encrypt certificate automatically;
-# "localhost" gets a self-signed one (for trying it out). ACME_EMAIL is optional (expiry notices).
-export SITE_ADDRESS="${DOMAIN}"
-export CADDY_GLOBAL_OPTIONS="${ACME_EMAIL:+email ${ACME_EMAIL}}"
-ORIGIN="https://${DOMAIN}"
-[ -n "${HTTPS_PORT:-}" ] && ORIGIN="${ORIGIN}:${HTTPS_PORT}"
+if [ -n "${DOMAIN:-}" ]; then
+  # A real domain gets a free Let's Encrypt certificate automatically; "localhost" a self-signed one.
+  export SITE_ADDRESS="${DOMAIN}"
+  ORIGIN="https://${DOMAIN}"
+  [ -n "${HTTPS_PORT:-}" ] && ORIGIN="${ORIGIN}:${HTTPS_PORT}"
+  # ACME_EMAIL is optional (certificate expiry notices).
+  export CADDY_GLOBAL_OPTIONS="${ACME_EMAIL:+email ${ACME_EMAIL}}"
+elif [ -n "${PUBLIC_ORIGIN:-}" ]; then
+  export SITE_ADDRESS="http://:8080"
+  ORIGIN="${PUBLIC_ORIGIN%/}"
+  # Behind a proxy: take the visitor's address from its X-Forwarded-For (proxies on private networks).
+  export CADDY_GLOBAL_OPTIONS="auto_https off
+	servers {
+		trusted_proxies static private_ranges
+		client_ip_headers X-Forwarded-For X-Real-IP
+	}"
+else
+  echo "Set DOMAIN=music.example.com (HTTPS on ports 80/443), or PUBLIC_ORIGIN=https://music.example.com (plain HTTP on port 8080, behind your own proxy)." >&2
+  exit 64
+fi
 
 # API: only reachable through Caddy on this machine, so it can trust Caddy's forwarded headers.
 export HOST=127.0.0.1 PORT=4000 TRUST_PROXY=true WORKER_INLINE=true
