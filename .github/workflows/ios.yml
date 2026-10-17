@@ -1,0 +1,76 @@
+name: iOS build
+
+# Builds the iPhone/iPad app (apps/mobile) on a macOS runner, since building needs Xcode.
+# The result is an UNSIGNED .ipa artifact: sign and install it with your own Apple ID
+# (e.g. Sideloadly) — see docs/native-apps.md.
+#
+# The app's web address comes from the "app_url" input (manual run) or the repository
+# variable ZUNO_APP_URL; without one the app opens on the "App URL not set" page.
+on:
+  workflow_dispatch:
+    inputs:
+      app_url:
+        description: "HTTPS address of the web app (ZUNO_APP_URL)"
+        required: false
+  push:
+    paths: ["apps/mobile/**", "packages/player/**", ".github/workflows/ios.yml"]
+  pull_request:
+    paths: ["apps/mobile/**", "packages/player/**", ".github/workflows/ios.yml"]
+
+concurrency: { group: ios-${{ github.ref }}, cancel-in-progress: true }
+
+jobs:
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+
+      - name: App address
+        env:
+          APP_URL: ${{ inputs.app_url || vars.ZUNO_APP_URL }}
+        run: |
+          if [ -n "$APP_URL" ]; then
+            echo "ZUNO_APP_URL=$APP_URL" > apps/mobile/.env
+            echo "App will load $APP_URL"
+          else
+            echo "::warning::No app_url input or ZUNO_APP_URL variable: the app will show the 'App URL not set' page."
+          fi
+
+      - name: Sync Capacitor
+        run: pnpm --filter @zuno/mobile exec cap sync ios
+
+      - name: Build (unsigned)
+        working-directory: apps/mobile/ios/App
+        run: |
+          xcodebuild -version
+          set -o pipefail
+          xcodebuild -project App.xcodeproj -scheme App -configuration Release \
+            -sdk iphoneos -destination "generic/platform=iOS" -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build 2>&1 | tee xcodebuild.log | grep -E "error:|BUILD (SUCCEEDED|FAILED)|\*\* " || true
+          test -d build/Build/Products/Release-iphoneos/App.app
+
+      - name: Package .ipa
+        working-directory: apps/mobile/ios/App
+        run: |
+          mkdir -p Payload
+          cp -R build/Build/Products/Release-iphoneos/App.app Payload/
+          zip -qry NeoMusic-unsigned.ipa Payload
+          ls -la NeoMusic-unsigned.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NeoMusic-unsigned-ipa
+          path: apps/mobile/ios/App/NeoMusic-unsigned.ipa
+          retention-days: 14
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: xcodebuild-log
+          path: apps/mobile/ios/App/xcodebuild.log
