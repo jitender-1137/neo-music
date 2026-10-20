@@ -9,6 +9,8 @@ import { NativeAudioElement, NativeMediaSession, PlayerEngine, browserMediaSessi
 import { attachAudioLog, logPlayback } from "./playbackLog";
 import { attachNativeAudioLog, isNativeApp, nativeAudioBridge } from "./native";
 import { isAppleMobile, isStandaloneApp } from "./platform";
+import { getMusicSource, playsInEmbed } from "./musicSource";
+import { EMBED_PREFIX, HybridAudio } from "./ytEmbed";
 import { api, ApiError } from "./api";
 import { getPrefs } from "./prefs";
 import { addHistory, loadSession, saveSession } from "./guestDb";
@@ -84,9 +86,10 @@ function createHtmlAudio(): HTMLAudioElement {
  * the song like `prefetch` — so a track ending (or ⏭ on the lock screen) moves on natively even
  * while the page is suspended.
  */
-function queueNextNatively(engine: PlayerEngine, bridge: NativeAudioBridge, url: (t: Track, token: string) => string) {
+function queueNextNatively(engine: PlayerEngine, bridge: NativeAudioBridge, url: (t: Track, token: string) => string, skip: () => boolean = () => false) {
   let sent = "";
   const update = () => {
+    if (skip()) return; // songs play in YouTube's embedded player, not the native one
     const s = engine.getState();
     const cur = s.queue.entries[s.queue.index];
     const next = !cur ? null
@@ -132,9 +135,15 @@ function createEngine(): PlayerEngine {
     api.post<{ durationSec?: number }>("/api/v1/playback/sessions", { trackId: id, quality: getPrefs().quality, preferMp4: mp4 }, signal ? { signal } : undefined)
       .then((r) => { if (r.durationSec) lengths.set(id, r.durationSec); return r; });
 
+  // One player for both kinds of playback: <audio> for streamed sources, YouTube's embedded player
+  // for the "official" source (see ytEmbed.ts).
+  const media = new HybridAudio(audio);
+  const embedMode = () => playsInEmbed(getMusicSource());
+
   const engine = new PlayerEngine({
-    audio,
+    audio: media,
     streamUrl: (t) => {
+      if (embedMode()) return `${EMBED_PREFIX}${t.id}`;
       const build = (tok: string) => streamPath(t.id, tok);
       const tok = readToken();
       if (tok) return build(tok);
@@ -164,6 +173,7 @@ function createEngine(): PlayerEngine {
     // resolve its stream on the server (cached in Redis) and pull its first 256 KB at low priority.
     // Honours `signal` — the engine aborts it if the current song rebuffers or the track changes.
     prefetch: (t, signal) => {
+      if (embedMode()) return; // YouTube's player loads its own media
       const t0 = performance.now();
       void sessionFor(t.id, signal)
         .then(() => {
@@ -199,7 +209,7 @@ function createEngine(): PlayerEngine {
     ])),
     seekButtons: !isAppleMobile() && !bridge,
     // Safari-family browsers only (the ones that misreport); others read the length correctly.
-    lookupDuration: mp4 ? (t) => (lengths.has(t.id) ? Promise.resolve(lengths.get(t.id)) : sessionFor(t.id).then((r) => r.durationSec)) : undefined,
+    lookupDuration: mp4 ? (t) => embedMode() ? Promise.resolve(undefined) : (lengths.has(t.id) ? Promise.resolve(lengths.get(t.id)) : sessionFor(t.id).then((r) => r.durationSec)) : undefined,
     // Home Screen app only: "playing" counts once the clock really moves; a frozen resume is reloaded
     // once, then shown as paused with "Open the app to resume" (iOS won't restart a Home Screen
     // app's audio from the background — device logs, WebKit report still open).
@@ -209,7 +219,7 @@ function createEngine(): PlayerEngine {
     onDiagnostic: (m) => logPlayback(m),
   });
   engine.setAutoplay(getPrefs().autoplay);
-  if (bridge) queueNextNatively(engine, bridge, (t, tok) => new URL(streamPath(t.id, tok), location.origin).href);
+  if (bridge) queueNextNatively(engine, bridge, (t, tok) => new URL(streamPath(t.id, tok), location.origin).href, embedMode);
   // iOS 17+/Safari: declare this as media playback — keeps audio going with the screen locked
   // and ignores the ring/silent switch (like a music app). No-op where unsupported.
   const nav = navigator as Navigator & { audioSession?: { type: string } };

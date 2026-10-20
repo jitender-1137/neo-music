@@ -25,10 +25,11 @@ export async function recommendationRoutes(app: FastifyInstance) {
     reply.header("Cache-Control", "private, no-store");
     const seeds = (req.query.seeds ?? "").split(",").filter((x) => /^[\w-]{11}$/.test(x)).slice(0, 10);
     try {
-      return await buildHome(ctx, req.userId, seeds);
+      // Same stored data (provider id), but the base feed comes from the request's music source.
+      return await buildHome({ ...ctx, provider: req.catalog }, req.userId, seeds);
     } catch (err) {
       req.log.warn({ err: (err as Error).message }, "personalized home failed; falling back");
-      return { ...(await ctx.provider.getHome()), personalized: false, configVersion: "provider-home" };
+      return { ...(await req.catalog.getHome()), personalized: false, configVersion: "provider-home" };
     }
   });
 
@@ -36,7 +37,7 @@ export async function recommendationRoutes(app: FastifyInstance) {
   r.get("/api/v1/recommendations/radio/:trackId", {
     schema: { tags: ["recommendations"], params: z.object({ trackId: Id }), querystring: z.object({ continuation: z.string().max(4000).optional() }), response: { 200: z.object({ tracks: z.array(Track), continuation: z.string().optional() }) } },
   }, async (req) => {
-    const res = await ctx.provider.getRadio({ trackId: req.params.trackId }, req.query.continuation);
+    const res = await req.catalog.getRadio({ trackId: req.params.trackId }, req.query.continuation);
     const s = await loadSignals(ctx, req.userId, []);
     const cands = mergeCandidates([{ source: "similar", items: res.tracks.map((t, i) => ({ track: { id: t.id, title: t.title, artistIds: t.artists?.map((a) => a.id) ?? [], artistNames: [t.artist], isExplicit: t.isExplicit, payload: t }, features: { tasteMatch: 1 - i / (res.tracks.length + 1) } })) }]);
     const keepSeedFirst = !req.query.continuation;
@@ -51,7 +52,7 @@ export async function recommendationRoutes(app: FastifyInstance) {
   });
 
   r.get("/api/v1/recommendations/similar/:trackId", { schema: { tags: ["recommendations"], params: z.object({ trackId: Id }), response: { 200: z.object({ shelves: z.array(Shelf) }) } } }, async (req) => ({
-    shelves: await ctx.cache.get(`related:${ctx.provider.id}:${req.params.trackId}`, { ttlSec: 6 * 3600 }, () => ctx.provider.getRelated(req.params.trackId)),
+    shelves: await ctx.cache.get(`related:${req.catalog.source ?? req.catalog.id}:${req.params.trackId}`, { ttlSec: 6 * 3600 }, () => req.catalog.getRelated(req.params.trackId)),
   }));
 
   r.post("/api/v1/recommendations/feedback", {

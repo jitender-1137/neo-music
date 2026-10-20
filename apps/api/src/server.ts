@@ -11,6 +11,7 @@ import { randomUUID } from "node:crypto";
 import type { AppContext } from "./context";
 import { registerErrorHandling } from "./plugins/errors";
 import { registerAuth } from "./plugins/auth";
+import { registerSource } from "./plugins/source";
 import { catalogRoutes } from "./routes/catalog";
 import { playbackRoutes } from "./routes/playback";
 import { healthRoutes } from "./routes/health";
@@ -77,6 +78,7 @@ export async function buildServer(ctx: AppContext): Promise<FastifyInstance> {
   await app.register(swaggerUi, { routePrefix: "/api/docs" });
 
   await registerAuth(app);
+  await registerSource(app);
   await app.register(healthRoutes);
   await app.register(catalogRoutes);
   await app.register(playbackRoutes);

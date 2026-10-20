@@ -71,6 +71,7 @@ function wrap(err: unknown, what: string): never {
 
 export class YouTubeMusicProvider implements MusicProvider {
   readonly id = "youtube" as const;
+  readonly source = "youtubei" as const;
   readonly displayName = "YouTube Music";
   readonly isDevelopmentOnly = false;
 

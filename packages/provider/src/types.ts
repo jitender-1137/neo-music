@@ -1,5 +1,5 @@
 import type {
-  AlbumPage, ArtistPage, AudioQuality, BrowsePage, PlaylistPage, ProviderId, SearchFilter,
+  AlbumPage, ArtistPage, AudioQuality, BrowsePage, MusicSource, PlaylistPage, ProviderId, SearchFilter,
   SearchResults, Shelf, Track, TrackDetail, Lyrics,
 } from "@zuno/core";
 
@@ -39,7 +39,10 @@ export interface RadioResult {
  * Every method throws `AppError` with a stable code on failure — never returns fake data.
  */
 export interface MusicProvider {
+  /** Catalogue namespace for stored data (likes, history…): "youtube" for every YouTube-backed source. */
   readonly id: ProviderId;
+  /** Which library this is (cache keys and diagnostics). Absent for single-library providers. */
+  readonly source?: MusicSource;
   readonly displayName: string;
   /** Shown in the UI so dev audio can't be mistaken for the real catalog. */
   readonly isDevelopmentOnly: boolean;

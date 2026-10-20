@@ -2,9 +2,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import type { AudioQuality } from "@zuno/core";
+import type { AudioQuality, MusicSource, SourceInfo } from "@zuno/core";
+import { getMusicSource, setMusicSource } from "@/lib/musicSource";
 import { cn } from "@/lib/cn";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -60,6 +61,45 @@ function Segmented<T extends string>({ value, options, onChange, label }: { valu
   );
 }
 
+/**
+ * Which library fetches the catalogue (and how songs play). Only the sources this server enables are
+ * offered; the trade-offs of the selected one are spelled out under it.
+ */
+function MusicSourceRow() {
+  const q = useQuery({
+    queryKey: ["music-sources"],
+    queryFn: () => api.get<{ sources: SourceInfo[]; default: MusicSource; current: MusicSource }>("/api/v1/sources"),
+    staleTime: 5 * 60_000,
+  });
+  const [picked, setPicked] = useState<MusicSource | undefined>(() => getMusicSource());
+  if (!q.data) return null;
+  const { sources, default: def } = q.data;
+  const current = picked && sources.some((s) => s.id === picked) ? picked : def;
+  const info = sources.find((s) => s.id === current);
+  const short: Record<MusicSource, string> = { youtubei: "youtubei.js", ytmusicapi: "ytmusicapi", official: "Official API" };
+  const choose = (id: MusicSource) => {
+    if (id === current) return;
+    setMusicSource(id);
+    setPicked(id);
+    toast(`Switched to ${short[id]} — reloading…`);
+    // Reload so every page, cache and the player start cleanly on the new source.
+    setTimeout(() => location.reload(), 400);
+  };
+  const limits = info && [
+    !info.features.albums && "no albums",
+    !info.features.lyrics && "no lyrics",
+    !info.features.suggestions && "no search suggestions",
+    !info.features.backgroundPlayback && "stops when the screen locks",
+  ].filter(Boolean).join(" · ");
+  return (
+    <Row title="Music source" desc={sources.length < 2 ? `${info?.name ?? short[current]} (the only source enabled on this server).` : `${info?.description ?? ""}${limits ? ` Limits: ${limits}.` : ""}`}>
+      {sources.length > 1 && (
+        <Segmented<MusicSource> label="Music source" value={current} onChange={choose} options={sources.map((s) => ({ v: s.id, label: short[s.id] }))} />
+      )}
+    </Row>
+  );
+}
+
 function InstallSection() {
   const st = useInstallState();
   return (
@@ -92,6 +132,7 @@ export function SettingsView() {
       <InstallSection />
       <section aria-label="Playback" className="mt-8 divide-y divide-divider">
         <h2 className="pb-2 text-sm font-semibold uppercase tracking-wide text-muted">Playback</h2>
+        <MusicSourceRow />
         <Row title="Audio quality" desc="Higher quality uses more data. Only qualities the source offers are used; iPhone and Safari always get AAC.">
           <Segmented label="Audio quality" value={prefs.quality} onChange={setQuality} options={[{ v: "auto", label: "Auto" }, { v: "low", label: "Low" }, { v: "normal", label: "Normal" }, { v: "high", label: "High" }]} />
         </Row>

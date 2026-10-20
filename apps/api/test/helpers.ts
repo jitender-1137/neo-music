@@ -28,7 +28,8 @@ export async function makeApp() {
   const redis = new Redis(REDIS_URL, { maxRetriesPerRequest: 1 });
   await redis.flushdb();
   await db.execute(sql`truncate users, catalog_items, listening_events, outbox_events, track_cooccurrences, recommendation_configs, audit_events restart identity cascade`);
-  const ctx: AppContext = { config, provider: new DevToneProvider(), db, database, redis, cache: new JsonCache(redis, pino({ level: "silent" })) };
+  const dev = new DevToneProvider();
+  const ctx: AppContext = { config, provider: dev, sources: { youtubei: dev }, db, database, redis, cache: new JsonCache(redis, pino({ level: "silent" })) };
   const app = await buildServer(ctx);
   await app.ready();
   return {

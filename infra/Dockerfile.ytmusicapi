@@ -1,0 +1,10 @@
+# ytmusicapi helper for the multi-container setup (docker-compose.prod.yml / .server.yml, profile "ytmusicapi").
+FROM python:3.13-slim
+WORKDIR /app
+COPY services/ytmusicapi/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt && useradd -r neo
+COPY services/ytmusicapi/server.py .
+USER neo
+ENV YTMUSICAPI_HOST=0.0.0.0 YTMUSICAPI_PORT=4200
+EXPOSE 4200
+CMD ["python", "server.py"]

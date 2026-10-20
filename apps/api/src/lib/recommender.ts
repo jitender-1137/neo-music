@@ -98,7 +98,7 @@ const providerCache = { ttlSec: 3600, staleSec: 6 * 3600 };
 
 export async function buildHome(ctx: AppContext, userId: string | null, guestSeeds: string[]): Promise<BrowsePage & { personalized: boolean; configVersion: string }> {
   const { provider, cache, config } = ctx;
-  const region = `${provider.id}:${config.YT_LOCATION}:${config.YT_LANGUAGE}`;
+  const region = `${provider.source ?? provider.id}:${config.YT_LOCATION}:${config.YT_LANGUAGE}`;
   const base = await cache.get(`home:${region}:`, { ttlSec: 600, staleSec: 1800 }, () => provider.getHome());
   const s = await loadSignals(ctx, userId, guestSeeds);
   if (!s.seeds.length && !s.topArtists.length) {

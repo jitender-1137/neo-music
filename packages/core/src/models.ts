@@ -9,6 +9,34 @@ import { z } from "zod";
 export const ProviderId = z.enum(["youtube", "dev"]);
 export type ProviderId = z.infer<typeof ProviderId>;
 
+/**
+ * Which library fetches the catalogue. All three read YouTube / YouTube Music, so ids (and therefore
+ * likes, history and playlists, stored under provider "youtube") are shared between them.
+ *   youtubei   youtubei.js (Innertube) — audio streamed through the server.
+ *   ytmusicapi ytmusicapi (Python) — YouTube Music metadata; audio streamed through the server.
+ *   official   YouTube Data API v3 + YouTube's embedded player — audio played by YouTube in the
+ *              browser (never through the server); no albums or lyrics; quota-limited.
+ */
+export const MusicSource = z.enum(["youtubei", "ytmusicapi", "official"]);
+export type MusicSource = z.infer<typeof MusicSource>;
+
+export const SourceInfo = z.object({
+  id: MusicSource,
+  name: z.string(),
+  description: z.string(),
+  /** stream = the server streams the audio; embed = YouTube's embedded player plays it in the browser. */
+  playback: z.enum(["stream", "embed"]),
+  features: z.object({
+    albums: z.boolean(),
+    lyrics: z.boolean(),
+    suggestions: z.boolean(),
+    moods: z.boolean(),
+    /** Keeps playing with the screen locked / app in the background (lock-screen controls). */
+    backgroundPlayback: z.boolean(),
+  }),
+});
+export type SourceInfo = z.infer<typeof SourceInfo>;
+
 export const ArtistRef = z.object({ id: z.string(), name: z.string() });
 export type ArtistRef = z.infer<typeof ArtistRef>;
 

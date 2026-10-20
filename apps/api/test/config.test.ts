@@ -61,3 +61,20 @@ describe("config: REDIS_URL", () => {
     expect(loadConfig({ ...base }).REDIS_URL).toBe(base.REDIS_URL);
   });
 });
+
+describe("config: music sources", () => {
+  it("defaults to youtubei.js only", () => {
+    const c = loadConfig({ ...base });
+    expect(c.MUSIC_SOURCES).toEqual(["youtubei"]);
+    expect(c.DEFAULT_MUSIC_SOURCE).toBe("youtubei");
+  });
+  it("parses a list, rejects unknown names and a default that isn't enabled", () => {
+    expect(loadConfig({ ...base, MUSIC_SOURCES: "youtubei, ytmusicapi" }).MUSIC_SOURCES).toEqual(["youtubei", "ytmusicapi"]);
+    expect(() => loadConfig({ ...base, MUSIC_SOURCES: "youtubei,spotify" })).toThrow(/MUSIC_SOURCES/);
+    expect(() => loadConfig({ ...base, MUSIC_SOURCES: "youtubei", DEFAULT_MUSIC_SOURCE: "ytmusicapi" })).toThrow(/DEFAULT_MUSIC_SOURCE/);
+  });
+  it("the official source needs an API key (kept server-side)", () => {
+    expect(() => loadConfig({ ...base, MUSIC_SOURCES: "youtubei,official" })).toThrow(/YOUTUBE_API_KEY/);
+    expect(loadConfig({ ...base, MUSIC_SOURCES: "youtubei,official", YOUTUBE_API_KEY: "x".repeat(39) }).YOUTUBE_API_KEY).toHaveLength(39);
+  });
+});

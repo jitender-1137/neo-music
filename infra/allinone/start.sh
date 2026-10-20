@@ -36,6 +36,15 @@ fi
 export HOST=127.0.0.1 PORT=4000 TRUST_PROXY=true WORKER_INLINE=true
 export WEB_ORIGINS="${WEB_ORIGINS:-${ORIGIN}}"
 
+# Music sources (Settings → Music source): youtubei (always), ytmusicapi, official (needs YOUTUBE_API_KEY).
+export MUSIC_SOURCES="${MUSIC_SOURCES:-youtubei}"
+pids=()
+if [[ ",${MUSIC_SOURCES}," == *",ytmusicapi,"* ]]; then
+  export YTMUSICAPI_URL=http://127.0.0.1:4200
+  YTMUSICAPI_HOST=127.0.0.1 YTMUSICAPI_PORT=4200 /opt/ytmusicapi/bin/python /app/ytmusicapi/server.py &
+  pids+=($!)
+fi
+
 cd /app/api
 node --import ./dist/telemetry.js dist/index.js &
 api=$!
@@ -47,11 +56,11 @@ web=$!
 caddy run --config /app/Caddyfile --adapter caddyfile &
 caddy=$!
 
-stop() { kill -TERM "$api" "$web" "$caddy" 2>/dev/null || true; }
+stop() { kill -TERM "$api" "$web" "$caddy" "${pids[@]}" 2>/dev/null || true; }
 trap stop TERM INT
 # Wait until any one of them exits, then stop the rest and exit with its status.
 set +e
-wait -n "$api" "$web" "$caddy"
+wait -n "$api" "$web" "$caddy" "${pids[@]}"
 code=$?
 stop
 wait

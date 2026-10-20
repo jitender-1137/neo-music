@@ -443,3 +443,23 @@ html { touch-action: manipulation; }
     --m-sheet-ease: linear(0, 0.0189, 0.0666, 0.1322, 0.2077, 0.2872, 0.3667, 0.4434, 0.5154, 0.5816, 0.6416, 0.6952, 0.7425, 0.7839, 0.8198, 0.8506, 0.8769, 0.8992, 0.918, 0.9337, 0.9467, 0.9575, 0.9664, 0.9736, 0.9795, 0.9842, 0.988, 0.991, 0.9933, 0.9952, 0.9966, 0.9977, 1);
   }
 }
+
+/* "Official YouTube" music source: YouTube's embedded player must stay visible (≥ 200×200 px). It sits
+   above the mini player / player bar and is hidden whenever the embed isn't in use. */
+#neo-yt-embed {
+  position: fixed;
+  z-index: 60;
+  right: max(12px, var(--safe-right));
+  bottom: calc(var(--m-mini-bottom, 96px) + var(--m-mini-h, 48px) + 12px);
+  width: 240px;
+  height: 200px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.45);
+}
+#neo-yt-embed:not([data-active="1"]) { display: none; }
+#neo-yt-embed iframe, #neo-yt-embed #neo-yt-embed-frame { width: 100%; height: 100%; border: 0; display: block; }
+@media (min-width: 768px) {
+  #neo-yt-embed { bottom: calc(5.5rem + 12px); right: 16px; }
+}

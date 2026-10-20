@@ -43,7 +43,7 @@ ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 \
     DB_DRIVER=memory MEMORY_DB_DIR=/data/db \
     MUSIC_PROVIDER=youtube YT_LOCATION=US YT_LANGUAGE=en LOG_LEVEL=info \
     XDG_DATA_HOME=/data XDG_CONFIG_HOME=/data/config
-RUN apt-get update && apt-get install -y --no-install-recommends tini libcap2-bin ca-certificates \
+RUN apt-get update && apt-get install -y --no-install-recommends tini libcap2-bin ca-certificates python3 python3-venv \
  && rm -rf /var/lib/apt/lists/* \
  && groupadd -r zuno && useradd -r -g zuno -d /data zuno \
  && mkdir -p /data && chown zuno:zuno /data
@@ -53,6 +53,10 @@ RUN setcap cap_net_bind_service=+ep /usr/bin/caddy
 WORKDIR /app
 COPY --from=build --chown=zuno:zuno /out/api /app/api
 COPY --from=build --chown=zuno:zuno /out/web /app/web
+# ytmusicapi music source: a small Python helper (started only when MUSIC_SOURCES includes it).
+COPY services/ytmusicapi/requirements.txt /app/ytmusicapi/requirements.txt
+RUN python3 -m venv /opt/ytmusicapi && /opt/ytmusicapi/bin/pip install --no-cache-dir -r /app/ytmusicapi/requirements.txt
+COPY services/ytmusicapi/server.py /app/ytmusicapi/server.py
 COPY infra/allinone/Caddyfile /app/Caddyfile
 COPY infra/allinone/start.sh /app/start.sh
 USER zuno

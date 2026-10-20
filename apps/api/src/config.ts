@@ -35,6 +35,19 @@ const Env = z.object({
   REDIS_URL: z.preprocess((v) => (v === "" ? undefined : v), z.string().url().optional()),
   STREAM_SIGNING_SECRET: z.string().min(32, "STREAM_SIGNING_SECRET must be at least 32 chars"),
   MUSIC_PROVIDER: z.enum(["youtube", "dev"]).default("youtube"),
+  /**
+   * Music sources users can pick in Settings (comma-separated): youtubei, ytmusicapi, official.
+   * youtubei.js is always available; the others need their own settings below.
+   */
+  MUSIC_SOURCES: z.string().default("youtubei")
+    .transform((s) => [...new Set(s.split(",").map((x) => x.trim()).filter(Boolean))])
+    .pipe(z.array(z.enum(["youtubei", "ytmusicapi", "official"])).min(1)),
+  /** The source used when a request doesn't name one (must be in MUSIC_SOURCES). */
+  DEFAULT_MUSIC_SOURCE: z.enum(["youtubei", "ytmusicapi", "official"]).default("youtubei"),
+  /** ytmusicapi helper service (Python, see services/ytmusicapi). */
+  YTMUSICAPI_URL: z.string().url().default("http://127.0.0.1:4200"),
+  /** YouTube Data API v3 key for the "official" source. Server-only; never sent to browsers. */
+  YOUTUBE_API_KEY: z.preprocess((v) => (v === "" ? undefined : v), z.string().min(20).optional()),
   YT_LOCATION: z.string().length(2).default("US"),
   YT_LANGUAGE: z.string().default("en"),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
@@ -69,6 +82,13 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   }
   if (parsed.data.DB_DRIVER === "postgres" && !parsed.data.DATABASE_URL) {
     throw new Error("Invalid configuration: DATABASE_URL is required when DB_DRIVER=postgres (or set DB_DRIVER=memory)");
+  }
+  const sources = parsed.data.MUSIC_SOURCES;
+  if (!sources.includes(parsed.data.DEFAULT_MUSIC_SOURCE)) {
+    throw new Error(`Invalid configuration: DEFAULT_MUSIC_SOURCE=${parsed.data.DEFAULT_MUSIC_SOURCE} isn't in MUSIC_SOURCES (${sources.join(",")})`);
+  }
+  if (sources.includes("official") && !parsed.data.YOUTUBE_API_KEY && parsed.data.MUSIC_PROVIDER !== "dev") {
+    throw new Error("Invalid configuration: MUSIC_SOURCES includes official, which needs YOUTUBE_API_KEY");
   }
   // The in-memory database exists only inside the API process, so its worker must run there too.
   if (parsed.data.DB_DRIVER === "memory") return { ...parsed.data, WORKER_INLINE: true };

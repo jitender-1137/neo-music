@@ -8,6 +8,8 @@ export const ErrorCode = {
   RateLimited: "rate_limited",
   ProviderUnavailable: "provider_unavailable",
   TrackUnavailable: "track_unavailable",
+  /** The selected music source can't do this (e.g. albums with the official YouTube API). */
+  NotSupported: "not_supported",
   Internal: "internal",
 } as const;
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];

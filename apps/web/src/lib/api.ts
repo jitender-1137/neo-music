@@ -3,6 +3,7 @@
  * cookie flows automatically and CSRF origin checks pass. Never stores tokens in JS.
  */
 import type { ApiErrorBody, ErrorCode } from "@zuno/core";
+import { getMusicSource } from "./musicSource";
 
 export class ApiError extends Error {
   constructor(readonly status: number, readonly code: ErrorCode | "network", message: string, readonly requestId?: string) {
@@ -22,7 +23,12 @@ async function request<T>(method: string, path: string, opts: Opts = {}): Promis
       credentials: "same-origin",
       signal: opts.signal,
       keepalive: opts.keepalive,
-      headers: { ...(opts.body !== undefined ? { "content-type": "application/json" } : {}), ...opts.headers },
+      headers: {
+        ...(opts.body !== undefined ? { "content-type": "application/json" } : {}),
+        // The device's music source (Settings); the API falls back to its default without it.
+        ...(getMusicSource() ? { "x-music-source": getMusicSource()! } : {}),
+        ...opts.headers,
+      },
       body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
     });
   } catch (err) {

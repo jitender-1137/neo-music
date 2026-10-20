@@ -5,8 +5,10 @@ const API_ORIGIN = process.env.API_ORIGIN ?? "http://127.0.0.1:4000";
 
 const csp = [
   "default-src 'self'",
-  // Next injects inline bootstrap scripts; no third-party script origins are allowed.
-  `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""}`,
+  // Next injects inline bootstrap scripts. The only third-party script is YouTube's IFrame Player API,
+  // used when the music source is "official" (songs play in YouTube's own embedded player).
+  `script-src 'self' 'unsafe-inline' https://www.youtube.com https://s.ytimg.com${process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""}`,
+  "frame-src https://www.youtube-nocookie.com https://www.youtube.com",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://*.googleusercontent.com https://*.ggpht.com https://i.ytimg.com https://*.ytimg.com https://music.youtube.com",
   // data: = the tiny silent WAV that unlocks iOS audio inside the tap (see player engine).

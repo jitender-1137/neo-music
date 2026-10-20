@@ -7,7 +7,9 @@
   "exports": {
     ".": "./src/index.ts",
     "./youtube": "./src/youtube/index.ts",
-    "./dev": "./src/dev/index.ts"
+    "./dev": "./src/dev/index.ts",
+    "./ytmusicapi": "./src/ytmusicapi/index.ts",
+    "./official": "./src/official/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p .",
@@ -17,7 +19,8 @@
     "@zuno/core": "workspace:*",
     "bgutils-js": "4.0.3",
     "jsdom": "30.1.3",
-    "youtubei.js": "18.1.0"
+    "youtubei.js": "18.1.0",
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@types/jsdom": "^30.0.0",
