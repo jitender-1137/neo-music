@@ -62,6 +62,26 @@ Needs a Mac with **Xcode** (App Store) and an Apple ID.
 With a free Apple ID the install expires after **7 days** (run ▶ again). A paid Apple Developer
 account ($99/year) gives 1-year installs and TestFlight.
 
+### Without Xcode: cloud build + Sideloadly
+
+[`.github/workflows/ios.yml`](../.github/workflows/ios.yml) builds the app on a GitHub macOS
+runner and uploads **`NeoMusic-unsigned.ipa`** as a run artifact (kept 14 days). It runs on
+pushes that touch `apps/mobile/**` or `packages/player/**`, or by hand (Actions → iOS build → Run
+workflow, where `app_url` sets the web address; otherwise the repository variable
+`ZUNO_APP_URL` is used). Use a permanent HTTPS address: a quick tunnel's address dies with it.
+
+1. Download the artifact: `gh run download <run-id> -n NeoMusic-unsigned-ipa`, or from the run
+   page on GitHub.
+2. Install **Sideloadly** (sideloadly.io) on the Mac, connect the iPhone by cable, unlock it and
+   trust the Mac.
+3. In Sideloadly: drag in the `.ipa`, enter your Apple ID, Start. It signs the app with a free
+   developer certificate for your Apple ID and installs it.
+4. On the iPhone: **Settings → Privacy & Security → Developer Mode** on (once), and **Settings →
+   General → VPN & Device Management** → trust your Apple ID.
+
+Same limits as Xcode with a free Apple ID: the install expires after 7 days; re-sign with
+Sideloadly to renew.
+
 ## Mac with Apple Silicon (M2)
 
 Same Xcode project, no extra code: choose **My Mac (Designed for iPad)** as the run destination
